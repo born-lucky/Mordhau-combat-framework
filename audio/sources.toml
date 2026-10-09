@@ -43,7 +43,12 @@ author = "Iwan 'qubodup' Gabovitch"
 license = "CC0-1.0"
 page = "https://opengameart.org/content/impact"
 
+# No first-pass recordings are accepted for automatic playback. Keep these
+# sources available for an explicit audition bank, without reinstalling them
+# into the user's game on the next setup run.
 [roles]
+
+[candidate_roles]
 swing = ["sword:sword - StarNinjas/sword.*.ogg"]
 parry = ["clash:sword_clash.*.ogg"]
 metal = ["impacts:Audio/impactMetal_medium_*.ogg"]
@@ -51,7 +56,8 @@ stone = ["flesh:qubodupImpact/qubodupImpactStone.ogg"]
 wood = ["impacts:Audio/impactWood_medium_*.ogg"]
 soft = ["impacts:Audio/impactSoft_medium_*.ogg"]
 flesh = ["flesh:qubodupImpact/qubodupImpactMeat01.ogg", "flesh:qubodupImpact/qubodupImpactMeat02.ogg"]
-foley = ["apparel:sfx/sheath-squeeze-*.wav", "apparel:sfx/belt-buckle-*.wav"]
+# Rejected: leather squeaks/buckles are not armor movement or release foley.
+# Leave this role unmapped until cue-specific recordings have been auditioned.
 equip = ["apparel:sfx/knife-unsheathe-*.wav"]
 step_stone = ["impacts:Audio/footstep_concrete_*.ogg"]
 step_grass = ["impacts:Audio/footstep_grass_*.ogg"]

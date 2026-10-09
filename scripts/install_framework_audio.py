@@ -63,14 +63,17 @@ def read_member(path: Path, name: str, sevenzip: str | None) -> bytes:
         raise ValueError(f"Oversized recording: {name}")
     return data
 
-def install(destination: Path, cache: Path, sevenzip: str | None) -> dict:
+def install(destination: Path, cache: Path, sevenzip: str | None, candidates: bool = False) -> dict:
     recipe = tomllib.loads((ROOT / "audio/sources.toml").read_text())
     destination.mkdir(parents=True, exist_ok=True)
     cache.mkdir(parents=True, exist_ok=True)
-    packages = {key: archive(cache, key, spec) for key, spec in recipe["archives"].items()}
+    roles = recipe["candidate_roles"] if candidates else recipe["roles"]
+    needed = {pattern.split(":", 1)[0] for patterns in roles.values() for pattern in patterns}
+    packages = {key: archive(cache, key, spec) for key, spec in recipe["archives"].items() if key in needed}
     names = {key: members(path, sevenzip) for key, path in packages.items()}
-    result = {"version": 1, "roles": {}, "samples": {}, "sources": recipe["archives"]}
-    for role, patterns in recipe["roles"].items():
+    result = {"version": 1, "roles": {}, "samples": {}, "sources": {key: recipe["archives"][key] for key in needed},
+              "status": "unapproved-candidates" if candidates else "native-only-pending-audition" if not roles else "reviewed-replacements"}
+    for role, patterns in roles.items():
         files = []
         for pattern in patterns:
             key, pattern = pattern.split(":", 1)
@@ -103,8 +106,12 @@ def main() -> None:
     parser.add_argument("--destination", type=Path, default=config / "audio")
     parser.add_argument("--cache", type=Path, default=ROOT / "build/audio-sources")
     parser.add_argument("--sevenzip", default=shutil.which("7z") or shutil.which("7zz"))
+    parser.add_argument("--candidate-bank", type=Path, help="Write rejected/unauditioned candidates here for review, instead of installing them in the game")
     args = parser.parse_args()
-    print(json.dumps(install(args.destination.resolve(), args.cache.resolve(), args.sevenzip), indent=2))
+    destination = (args.candidate_bank or args.destination).resolve()
+    if args.candidate_bank and destination == (config / "audio").resolve():
+        parser.error("Candidate banks must use a separate audition directory, not the default game bank")
+    print(json.dumps(install(destination, args.cache.resolve(), args.sevenzip, candidates=args.candidate_bank is not None), indent=2))
 
 if __name__ == "__main__":
     main()

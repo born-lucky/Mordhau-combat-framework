@@ -10,7 +10,11 @@ python scripts/install_framework_audio.py
 
 The destination defaults to the framework's own `Saved/Config/WindowsClient/audio` directory, or `$env:MH_CONFIG_DIR/audio`. The runtime reads this bank automatically. `MH_AUDIO_REPLACEMENTS` can point to another bank. Recordings live outside Git. Archive SHA-256 digests, author, license, source page and selected member paths are recorded in `audio/sources.toml`; installed `bank.json` additionally records sample digests.
 
-The first bank contains 89 recordings in 17 roles: swings, parries, flesh hits, metal/wood/stone/soft impacts, equipment and armor foley, four footstep materials, interface hits, and combat effort/pain/death voices. Samples are predecoded before play, converted to mono for point emitters, given consistent peak headroom, and trimmed of surrounding recording silence with 5 ms padding. No time stretching or event retiming is applied.
+The first bank was rejected in listening tests. Its broad material mapping and uniform peak normalization did not preserve the originals' character or balance. In particular, sheath-squeeze and belt-buckle recordings replaced armor movement and release foley, producing an inappropriate loud windup noise. These 13 substitutions have been removed from the recipe. The entire unapproved bank has been withdrawn from both local game configurations, preserving its manifest and recordings for comparison. There are currently no automatic replacements; the owner's native samples play through the existing spatial mixer.
+
+All cues currently use the owner's original samples, pending individually auditioned independent replacements. Do not add a windup effect. Replacement banks substitute only leaves of existing SoundCue events; they must preserve quiet/silent cues and distinguish material, duration and level rather than treating any leather/metal recording as equivalent. The loader's uniform peak normalization also needs review before new samples are activated. No time stretching or event retiming is applied.
+
+The download recipe preserves 76 unapproved recordings in 16 `candidate_roles`. The default installer consumes only `roles`, currently empty, so rerunning setup cannot restore the rejected sounds and requires no downloads. To prepare a separate review bank, use `--candidate-bank build/audio-audition`; this does not activate it in the game. Test it explicitly with `MH_AUDIO_REPLACEMENTS` only during an audition. Archive popularity is not a substitute for listening against each native cue.
 
 The scope is combat and the training range. Spoken voice commands, music, breathing/heartbeat loops, animals, siege engines and ambient map recordings still need appropriate replacements. Unmapped events retain the original sample; missing or invalid banks log an explicit error/warning. This preserves sound behavior while remaining honest about incomplete replacement coverage.
 
@@ -27,3 +31,19 @@ All selected downloads offer CC0. These facts were checked on the creators' page
 * Iwan 'qubodup' Gabovitch, [Impact](https://opengameart.org/content/impact): 62 favorites and positive comments; flesh and stone impacts.
 
 Credits are retained even where CC0 does not require attribution. These free recordings do not make the remaining private importer or playable release ready for publication.
+
+## 2026-10-09 windup correction
+
+Product question: does starting an attack introduce the rejected squeeze/buckle sound? Failure mode: an existing quiet armor cue was replaced with the wrong recording and boosted. Change: withdraw the rejected bank, preserving native events and original PCM. False if a new run plays any rejected framework sample or starts a weapon whoosh during windup.
+
+Native evidence: `UAttackMotion::OnBegin_Implementation` RVA `0x162eda0` calls `PlayNonSnappyArmorFoley`; `OnTick_Implementation` RVA `0x16328c0` starts the weapon whoosh in release. The attack yell threshold is `WindupEnd + PlayAttackYellTimeReleaseOffset + max(-LagInduction, 0)`, with constructor offset `-0.05`; do not turn it into an attack-start sound. The loud squeeze/buckle recording was our substitution, not a native windup effect.
+
+Run `scripts/verify_framework_windup_audio.py --data <owner-local-data>` to compare swing and stab scheduling with an original-only bank using the same canonical executable. Evidence is private under `build/windup-audio-proof`; the check validates routing and timing, not subjective acceptance of the remaining sound bank.
+
+## Spatial playback check
+
+The `verify_framework_spatial_audio.rs` probe links to the reviewed runtime's existing libraries and renders actual native weapon PCM through `channel_map` and `Voice::mix_stereo`. It checks left/right channel energy, a 180-degree listener rotation, distance attenuation and centered nonspatial playback; it writes private WAV evidence, never distributable game assets.
+
+The first probe failed: exactly-left and exactly-right emitters both mapped to azimuth 90 and the right speaker. Native `FAudioDevice::GetAzimuth` RVA `0x2ef3db0` really has this equality branch (`0x2ef3fce` jumps past sign correction when the forward dot is zero). This is an intentional boundary correction for the rewrite's frequently axis-aligned camera, not a claim that the branch was misread. Preserve the side when the forward dot is exactly zero, making left azimuth 270 and right 90; retain the other native branches. A regression check also covers both sides of this boundary and a rotated camera.
+
+Combat cues use world-space emitters: the whoosh sits along the weapon trace, impact sounds use the hit position, and character sounds use their speaker position. The listener follows camera position/orientation; native attenuation and the stereo channel map feed the same software mixer used by device playback. This check does not establish full vanilla mixer parity or subjective replacement quality.

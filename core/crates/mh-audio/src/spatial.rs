@@ -5,6 +5,10 @@
 //!   r = dot(listener right, dir); (f, r) normalised when its squared length > 1e-8; angle = pi/2 when |f| <= 1e-8,
 //!   else atan(r / f); absolute azimuth = |degrees(angle)|, then f > 0: r < 0 -> 360 - a; f < 0: r >= 0 -> 180 - a
 //!   (r == 0 keeps a), r < 0 -> 180 + a. 0 = ahead, 90 = right, clockwise.
+//!   Corrective boundary exception: native f == 0 leaves a=90 for BOTH sides
+//!   (0x2ef3fce jae 0x2ef3ff5). Our axis-aligned camera hits this often; preserve
+//!   the side at that boundary so an exactly-left emitter pans left, continuously
+//!   with the neighboring quadrants. Other native branches remain unchanged.
 //! - Speakers: FMixerDevice::InitializeChannelAzimuthMap 0x2cc4cf0 for 2 output channels: FrontLeft 270,
 //!   FrontRight 90 (the ini AudioChannelAzimuthMap is skipped for stereo, 0x2cc4e81).
 //! - Mono, spatialized (FMixerSource::ComputeMonoChannelMap 0x2cb6760 -> FMixerDevice::Get3DChannelMap 0x2cbc7a0):
@@ -45,7 +49,7 @@ pub fn absolute_azimuth(fwd: [f32; 3], right: [f32; 3], dir: [f32; 3]) -> f32 {
             360.0 - a
         }
     } else if f == 0.0 {
-        a
+        if r < 0.0 { 360.0 - a } else { a }
     } else if r < 0.0 {
         a + 180.0
     } else if r > 0.0 {
@@ -131,10 +135,23 @@ mod tests {
         assert!((absolute_azimuth(f, r, [0.0, 1.0, 0.0]) - 90.0).abs() < 1e-4);
         // exactly behind (r == 0) keeps |atan(0)| = 0 (0x2ef3fe3 jbe): the exe's quirk, same pan as 180
         assert_eq!(absolute_azimuth(f, r, [-1.0, 0.0, 0.0]), 0.0);
-        assert!((absolute_azimuth(f, r, [0.0, -1.0, 0.0]) - 90.0).abs() < 1e-4 || (absolute_azimuth(f, r, [0.0, -1.0, 0.0]) - 270.0).abs() < 1e-4);
+        assert!((absolute_azimuth(f, r, [0.0, -1.0, 0.0]) - 270.0).abs() < 1e-4);
         assert!((absolute_azimuth(f, r, [1.0, -1.0, 0.0]) - 315.0).abs() < 1e-3);
         assert!((absolute_azimuth(f, r, [-1.0, -1.0, 0.0]) - 225.0).abs() < 1e-3);
         assert!((absolute_azimuth(f, r, [-1.0, 1.0, 0.0]) - 135.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn exact_left_boundary_preserves_side_and_camera_rotation() {
+        let (f, r) = ([0.0, 0.0, -1.0], [1.0, 0.0, 0.0]);
+        for z in [-1e-6, 0.0, 1e-6] {
+            let az = absolute_azimuth(f, r, [-1.0, 0.0, z]);
+            assert!((az - 270.0).abs() < 0.001, "left boundary discontinuity: {az}");
+            let gains = map_3d(az, 0.0);
+            assert!(gains[0] > 0.999 && gains[1] < 0.001);
+        }
+        let az = absolute_azimuth([0.0, 0.0, 1.0], [-1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]);
+        assert_eq!(map_3d(az, 0.0), [0.0, 1.0]);
     }
 
     /// linear panning: ahead = 0.5 / 0.5, right = 0 / 1, left = 1 / 0, behind = 0.5 / 0.5

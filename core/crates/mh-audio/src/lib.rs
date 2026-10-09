@@ -956,7 +956,7 @@ mod tests {
     fn installed_framework_audio_substitutes_native_cue_leaves() {
         let directory = std::env::var_os("MH_AUDIO_REPLACEMENTS").expect("set replacement bank directory");
         let bank = replacements::Bank::open(std::path::Path::new(&directory)).expect("all selected samples decode");
-        assert_eq!(bank.sample_count(), 89);
+        assert!(bank.sample_count() > 0, "requires an explicit audition bank; the default bank is native-only");
         let p = Paks(std::sync::Arc::new(mh_pak::Vfs::mount_default().expect("owner's game paks")));
         let mut st = AudioState::new(&p);
         for (cue, expected) in [
