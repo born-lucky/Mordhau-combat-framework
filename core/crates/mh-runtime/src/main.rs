@@ -457,6 +457,7 @@ fn main() -> AppExit {
         .add_plugins(framework_ui::FrameworkUiPlugin)
         .insert_resource(framework_ui::LabMenu { open: args.menu || args.legacy_menu })
         .insert_resource(mh_ui::real::NativeUiInput(false))
+        .insert_resource(mh_ui::NativeUiEnabled(false))
         .add_plugins(custom_visuals::CustomVisualsPlugin)
         .insert_resource(custom_visuals::CustomVisuals { enabled: true })
         .add_plugins(devmenu::DevMenuPlugin)

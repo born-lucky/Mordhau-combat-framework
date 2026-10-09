@@ -144,9 +144,17 @@ pub struct UiState {
 
 pub struct UiPlugin;
 
+/// Hosts with an independent interface can skip original widget/font/texture construction.
+/// Message types and settings APIs remain registered; combat does not depend on the widget VM.
+#[derive(Resource)]
+pub struct NativeUiEnabled(pub bool);
+impl Default for NativeUiEnabled {
+    fn default() -> Self { Self(true) }
+}
+
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<HudMsg>()
+        app.init_resource::<NativeUiEnabled>().add_message::<HudMsg>()
             .add_message::<MenuChoice>()
             .init_resource::<HudVitals>()
             .init_resource::<Scoreboard>()
@@ -215,6 +223,7 @@ pub fn load_state(paks: &Paks) -> UiState {
 }
 
 fn setup(world: &mut World) {
+    if !world.resource::<NativeUiEnabled>().0 { return; }
     let Some(paks) = Paks::get_or_mount(world) else {
         warn!("mh-ui: no paks mounted; UI disabled");
         return;

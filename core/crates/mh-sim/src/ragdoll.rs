@@ -145,7 +145,7 @@ impl Ragdolls {
         let mut ids=Vec::new();
         let result=(|| {
             for b in &self.asset.bodies {
-                eprintln!("PHYSX create body {}",b.bone);
+                if std::env::var_os("MH_RAGDOLL_TRACE").is_some() { eprintln!("PHYSX create body {}",b.bone); }
                 let bone=sk.find(&b.bone).ok_or_else(||format!("Corpse bone absent: {}",b.bone))?;
                 let mut shapes=Vec::new();
                 for e in &b.geom.spheres {shapes.push(Shape {kind:0,local:local(e.center,[0.;3]),size:[e.radius as f32,0.,0.],rest_offset:e.shape.rest_offset as f32,contact_offset:offset(e.radius as f32)});}
@@ -169,7 +169,7 @@ impl Ragdolls {
             }
             let pairs:Vec<_>=self.asset.collision_disable_pairs.iter().map(|(p,_)|[ids[p[0]].1,ids[p[1]].1]).collect();self.scene.disable_pairs(&pairs);
             for c in &self.asset.constraints {
-                eprintln!("PHYSX create joint {} -> {}",c.bone1,c.bone2);
+                if std::env::var_os("MH_RAGDOLL_TRACE").is_some() { eprintln!("PHYSX create joint {} -> {}",c.bone1,c.bone2); }
                 let ci=self.asset.bodies.iter().position(|b|b.bone.eq_ignore_ascii_case(&c.bone1)).ok_or("Joint child absent")?;
                 let pi=self.asset.bodies.iter().position(|b|b.bone.eq_ignore_ascii_case(&c.bone2)).ok_or("Joint parent absent")?;
                 let avg=(self.asset.bodies[ci].dynamics.mass_kg.unwrap()+self.asset.bodies[pi].dynamics.mass_kg.unwrap()) as f32*0.5;
@@ -178,7 +178,7 @@ impl Ragdolls {
             Ok(())
         })();
         if let Err(e)=result {self.scene.remove_bodies(&ids.iter().map(|b|b.1).collect::<Vec<_>>());return Err(e);}
-        eprintln!("PHYSX corpse created");
+        if std::env::var_os("MH_RAGDOLL_TRACE").is_some() { eprintln!("PHYSX corpse created"); }
         Ok(ids)
     }
 

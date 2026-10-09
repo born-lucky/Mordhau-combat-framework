@@ -109,13 +109,16 @@ fn parts(sm: &SkeletalMesh) -> Vec<(Mesh, String)> {
     out
 }
 
-pub fn build(src: &PakSource, rd: &mh_pak::Reader, mesh_pkg: &str, anim_pkg: &str) -> Result<PakFighter, String> {
-    let sm = skeletal_mesh::lod0(src, mesh_pkg).map_err(|e| e.0)?;
-    let bones: Vec<Bone> = sm
-        .ref_skeleton
+pub fn build(src: &PakSource, rd: &mh_pak::Reader, mesh_pkg: &str, anim_pkg: &str, include_art: bool) -> Result<PakFighter, String> {
+    let sm = if include_art { Some(skeletal_mesh::lod0(src, mesh_pkg).map_err(|e| e.0)?) } else { None };
+    let reference = match &sm {
+        Some(sm) => sm.ref_skeleton.clone(),
+        None => skeletal_mesh::mesh_reference(src, mesh_pkg).map_err(|e| e.0)?,
+    };
+    let bones: Vec<Bone> = reference
         .bones
         .iter()
-        .zip(sm.ref_skeleton.pose.iter())
+        .zip(reference.pose.iter())
         .map(|(b, t)| Bone { name: b.name.clone(), parent: b.parent, local: ue_local(t) })
         .collect();
     // bind pose: global = parent global * local, in Y-up space
@@ -141,7 +144,7 @@ pub fn build(src: &PakSource, rd: &mh_pak::Reader, mesh_pkg: &str, anim_pkg: &st
             unmatched += 1;
             continue;
         };
-        let Some(mi) = sm.ref_skeleton.find(&bname) else {
+        let Some(mi) = reference.find(&bname) else {
             unmatched += 1;
             continue;
         };
@@ -178,7 +181,8 @@ pub fn build(src: &PakSource, rd: &mh_pak::Reader, mesh_pkg: &str, anim_pkg: &st
             }
         }
     }
-    Ok(PakFighter { inverse_bindposes, parts: parts(&sm), vertices: sm.vertices.positions.len(), bones, clip, clip_tracks: matched, clip_tracks_unmatched: unmatched })
+    let (parts, vertices) = sm.as_ref().map(|sm| (parts(sm), sm.vertices.positions.len())).unwrap_or_default();
+    Ok(PakFighter { inverse_bindposes, parts, vertices, bones, clip, clip_tracks: matched, clip_tracks_unmatched: unmatched })
 }
 
 /// One skeletal mesh part bound by bone name to the master skeleton (character_builder.gd: every part shares

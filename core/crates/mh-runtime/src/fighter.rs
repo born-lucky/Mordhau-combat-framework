@@ -97,6 +97,7 @@ fn load_assets(
     mut images: ResMut<Assets<Image>>,
     spec: Option<Res<crate::specdata::SpecData>>,
     sel: Res<crate::loadout::Selected>,
+    custom: Option<Res<crate::custom_visuals::CustomVisuals>>,
 ) {
     let clip = assets.load(GltfAssetLabel::Animation(0).from_asset(IDLE_GLB));
     let (graph, idle) = AnimationGraph::from_clip(clip);
@@ -113,13 +114,15 @@ fn load_assets(
     }
     let (Some(vfs), Some(ps)) = (&src.vfs, &src.pak) else { return };
     let rd = mh_pak::Reader::new(vfs.clone());
-    match crate::pak_fighter::build(ps, &rd, crate::pak_fighter::BODY_MESH, crate::pak_fighter::IDLE_ANIM) {
+    let authored = custom.as_deref().is_some_and(|c| c.enabled);
+    match crate::pak_fighter::build(ps, &rd, crate::pak_fighter::BODY_MESH, crate::pak_fighter::IDLE_ANIM, !authored) {
         Ok(f) => {
             // body materials: rust-assets' Resolver -> StandardMaterial (the wearable ue_tint path is R3)
             let res = mh_assets::material::Resolver::new(&rd, &**ps);
             let mut st = crate::paksrc::TexStats::default();
             let mut parts = Vec::new();
-            for (m, mp) in f.parts {
+            // Authored figures still need the original skeleton/pose, not hidden cosmetics and textures.
+            for (m, mp) in f.parts.into_iter().filter(|_| !authored) {
                 let d = if mp.is_empty() { None } else { res.build(&mp) };
                 let mat = match d {
                     Some(d) => {
@@ -143,7 +146,7 @@ fn load_assets(
             // parts + wearables, one part set per profile
             let mut all_skins = std::collections::HashMap::new();
             let mut lo_infos = serde_json::Map::new();
-            for &pi in &sel.list() {
+            for &pi in sel.list().iter().filter(|_| !authored) {
                 let (skins, lo_info) = build_profile_skins(pi, &mut SkinCtx {
                     vfs,
                     ps,
@@ -270,7 +273,9 @@ fn bot_skins(
     mut tint: ResMut<Assets<crate::uetint::UeTintMaterial>>,
     mut stdm: ResMut<Assets<StandardMaterial>>,
     mut ibps: ResMut<Assets<SkinnedMeshInverseBindposes>>,
+    custom: Option<Res<crate::custom_visuals::CustomVisuals>>,
 ) {
+    if custom.as_deref().is_some_and(|c| c.enabled) { return; }
     let Some(mut pb) = pb else { return };
     let missing: Vec<usize> = sl.profiles.values().copied().filter(|k| !pb.skins.contains_key(k)).collect();
     if missing.is_empty() {
@@ -363,11 +368,17 @@ fn spawn_shadow_capsules(
     mut meshes: ResMut<Assets<Mesh>>,
     mut mats: ResMut<Assets<StandardMaterial>>,
     mut mat: Local<Option<Handle<StandardMaterial>>>,
+    mut capsule_meshes: Local<Vec<Handle<Mesh>>>,
 ) {
+    if bodies.is_empty() { return; }
+    if capsule_meshes.is_empty() {
+        capsule_meshes.extend(shadow_capsule_table().iter().map(|c|
+            meshes.add(Capsule3d::new(c.radius * 0.01, c.length * 0.01))));
+    }
     for (_, bj, parent) in bodies.iter() {
         let Ok(f) = fighters.get(parent.parent()) else { continue };
         let m = mat.get_or_insert_with(|| mats.add(StandardMaterial { base_color: Color::BLACK, unlit: true, ..default() })).clone();
-        for c in shadow_capsule_table() {
+        for (ci, c) in shadow_capsule_table().iter().enumerate() {
             let Some(j) = bj.names.iter().position(|n| n == &c.bone) else { continue };
             let xf = mordhau_core::ue::FTransform::new(
                 mordhau_core::ue::FQuat::from_rotator(c.rotation_pyr[0], c.rotation_pyr[1], c.rotation_pyr[2]),
@@ -375,7 +386,7 @@ fn spawn_shadow_capsules(
             );
             // FKSphylElem: Radius and the cylinder Length along the element's local Z (coords: UE Z -> Bevy Y, the
             // Capsule3d axis)
-            let mesh = meshes.add(Capsule3d::new(c.radius * 0.01, c.length * 0.01));
+            let mesh = capsule_meshes[ci].clone();
             commands.spawn((
                 Name::new(format!("ShadowCapsule {}", c.bone)),
                 Mesh3d(mesh),
@@ -927,7 +938,8 @@ fn held_weapons(
             _ => (0, Vec::new(), None),
         };
         let key = format!("{wp}|{skin}|{choice:?}|{paint_in:?}");
-        if !cache.by_weapon.contains_key(&key) {
+        let authored = custom.as_deref().is_some_and(|c| c.enabled);
+        if !authored && !cache.by_weapon.contains_key(&key) {
             // AMordhauEquipment::UpdateMaterial's colours / pattern / emblem (mh_assets::equipment_paint, rust-assets r11)
             let paint = match (&src.vfs, paint_in) {
                 (Some(vfs), Some((pat, cols, em, emc))) => Some(mh_assets::equipment_paint::paint(&mh_pak::Reader::new(vfs.clone()), &wp, skin, pat, cols, em, emc)),
@@ -937,7 +949,7 @@ fn held_weapons(
             cache.info.push(info);
             cache.by_weapon.insert(key.clone(), look);
         }
-        let look = cache.by_weapon.get(&key).cloned().flatten();
+        let look = if authored { None } else { cache.by_weapon.get(&key).cloned().flatten() };
         // Custom training geometry needs the real held component, not decoded original artwork.
         // Retain normal decoder behavior, but do not suppress a custom component on a look failure.
         if look.is_none() && !custom.as_deref().is_some_and(|c| c.enabled) { continue; }

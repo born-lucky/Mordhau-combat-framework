@@ -178,7 +178,7 @@ pub fn equiv_assets(world: &mut World, limit: usize) -> Value {
         let fa = world.get_resource::<crate::fighter::FighterAssets>()?;
         let src = world.resource::<Source>();
         let rd = mh_pak::Reader::new(src.vfs.clone()?);
-        let f = crate::pak_fighter::build(&ps, &rd, crate::pak_fighter::BODY_MESH, crate::pak_fighter::IDLE_ANIM).ok()?;
+        let f = crate::pak_fighter::build(&ps, &rd, crate::pak_fighter::BODY_MESH, crate::pak_fighter::IDLE_ANIM, true).ok()?;
         let meshes = world.resource::<Assets<Mesh>>();
         let mut prims = Vec::new();
         for (h, (pm, mat)) in fa.body_prims.iter().zip(f.parts.iter()) {

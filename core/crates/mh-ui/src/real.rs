@@ -170,6 +170,7 @@ pub fn ue_key(k: KeyCode) -> Option<String> {
 }
 
 fn mount(world: &mut World) {
+    if !world.resource::<crate::NativeUiEnabled>().0 { return; }
     let want = *world.resource::<Screen>();
     let have = world.get_non_send_resource::<Rt>().map(|r| r.screen);
     if have == Some(want) || (want == Screen::Off && have.is_none()) {
