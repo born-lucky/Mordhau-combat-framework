@@ -24,9 +24,9 @@ This is an unofficial fan project. We do not endorse piracy or claim Triternion'
 
 https://github.com/user-attachments/assets/ef919f7f-22ac-48d4-8a0c-fbd5b017b278
 
-**Combat — parries, weapon hits, alternate grips and death ragdolls**
+**Combat — articulated hands, corrected blade orientation, parries, hits and ragdolls**
 
-Updated combat footage with articulated hands and the corrected blade orientation is being recorded.
+https://github.com/user-attachments/assets/de7c1a4f-b19e-463d-8e02-97ec9cd23ffd
 
 Silent gameplay captures from development builds, using custom training figures.
 
@@ -54,3 +54,7 @@ python tools/setup.py --game-dir "YOUR-MORDHAU-INSTALL" --cache-dir "YOUR-LOCAL-
 The supported Windows game EXE is `Mordhau/Binaries/Win64/Mordhau-Win64-Shipping.exe`. Native import currently also needs its matching PDB. The importer remains incomplete and does not yet prepare a runnable installation; see [local setup status](docs/LOCAL_IMPORT.md).
 
 Explore the [framework API](docs/FRAMEWORK.md), [custom presentation](docs/PRESENTATION.md) and [release checklist](docs/RELEASE_BLOCKERS.md). Original game content remains subject to its owners' rights; see [notices](NOTICE.md).
+
+## Contributors
+
+AI development assistance: **Claude** (Anthropic) and **GPT** (OpenAI).
