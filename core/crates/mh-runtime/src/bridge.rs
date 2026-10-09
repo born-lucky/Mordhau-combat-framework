@@ -97,6 +97,9 @@ fn prewarm_combat(
     mut warm: MessageWriter<mh_audio::PrewarmCue>,
     mut warm_fx: MessageWriter<mh_fx::FxPrewarm>,
     mut seen: Local<std::collections::HashSet<String>>,
+    sl: Res<crate::sim::SimLevel>,
+    sel: Option<Res<crate::loadout::Selected>>,
+    mut warmed_voices: Local<std::collections::HashSet<String>>,
 ) {
     let Some(vfs) = &src.vfs else { return };
     let views = sim.0.fighters();
@@ -122,6 +125,14 @@ fn prewarm_combat(
         st.chars = Some(c);
     }
     for v in &views {
+        let voice = sel.as_ref().and_then(|s| s.gear.get(&sl.profiles.get(&v.id).copied().unwrap_or(s.player)))
+            .map(|g| g.voice.clone()).unwrap_or_default();
+        if !voice.is_empty() && warmed_voices.insert(voice.clone()) {
+            let pack = st.voices.entry(voice.clone()).or_insert_with(|| mh_audio::sources::VoicePack::read(&rd, &voice));
+            // These graph leaves can otherwise be decoded on the attack, hurt or death frame.
+            // VoiceCommands is not a combat trigger and can contain an entire dialogue library.
+            paths.extend(pack.cues.iter().filter(|(event, _)| event != "VoiceCommands").map(|(_, cue)| cue.clone()));
+        }
         let Some(w) = sim.0.weapon_path(v.id) else { continue };
         if w.is_empty() || !seen.insert(w.clone()) {
             continue;

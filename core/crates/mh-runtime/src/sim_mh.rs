@@ -330,6 +330,24 @@ impl SimBackend for MhSim {
         let physics_dlls = mh_pak::game_dir().join("Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015");
         match mh_sim::ragdoll::Ragdolls::open(&rd, &self.repo.join("state/physics/mh_physx.dll"), &physics_dlls, cw.gravity_z as f32) {
             Ok(mut r) => {
+                if let Some(a) = &sim.anim {
+                    // Enumerate the pure native death chooser without advancing the game's rand stream.
+                    // Load its finite clips/notifies during level preparation, never on the first kill.
+                    let mut sequences = std::collections::BTreeSet::new();
+                    for angle in [-180., -90., 0., 90., 180.] {
+                        for random in 0..6 {
+                            for bone in ["", "Spine"] {
+                                for subtype in [0, 2] {
+                                    sequences.insert(mh_sim::ragdoll::death_sequence(angle, random, bone, 1, subtype));
+                                }
+                            }
+                        }
+                    }
+                    for sequence in sequences {
+                        let _ = a.clip(&sequence);
+                        let _ = a.notifies(&sequence);
+                    }
+                }
                 for weapon in &ws {
                     let d=rd.defaults(weapon);
                     r.force_multipliers.insert(weapon.to_string(),d.get("RagdollForceMultiplier").and_then(|v|v.as_f64()).unwrap_or(3.5) as f32);
