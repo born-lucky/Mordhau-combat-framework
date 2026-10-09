@@ -119,7 +119,9 @@ impl WeaponFrames {
 }
 
 fn weapon_kind(path: &str) -> Option<WeaponKind> {
-    let path = path.to_ascii_lowercase();
+    // Directory names describe animation families too: WarAxe lives in TwoHandedSword.
+    // Choose the physical silhouette from the equipment class itself, never its folder.
+    let path = path.rsplit('/').next().unwrap_or(path).to_ascii_lowercase();
     if ["halberd", "poleaxe", "billhook", "bardiche"].iter().any(|n| path.contains(n)) { Some(WeaponKind::Poleaxe) }
     else if ["spear", "pitchfork"].iter().any(|n| path.contains(n)) { Some(WeaponKind::Spear) }
     else if ["sword", "dagger", "knife", "rapier", "messer", "falchion", "falx", "estoc"].iter().any(|n| path.contains(n)) { Some(WeaponKind::Sword) }
@@ -479,6 +481,14 @@ pub fn diagnostics(world: &mut World) -> serde_json::Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn physical_kind_uses_equipment_class_not_its_animation_family_folder() {
+        assert_eq!(weapon_kind("Specific/TwoHandedSword/BP_WarAxe"),Some(WeaponKind::Axe));
+        assert_eq!(weapon_kind("Specific/TwoHandedSword/BP_2Hmace"),Some(WeaponKind::Hammer));
+        assert_eq!(weapon_kind("Specific/TwoHandedSword/BP_Greatsword"),Some(WeaponKind::Sword));
+        assert_eq!(weapon_kind("Specific/Polearms/BP_Halberd"),Some(WeaponKind::Poleaxe));
+        assert_eq!(weapon_kind("Specific/TwoHandedSword/BP_Unknown"),None);
+    }
     fn sword_frame() -> WeaponFrame {
         // Synthetic test sockets; actual sockets are loaded locally from the owned paks.
         WeaponFrame { start:Vec3::ZERO,end:Vec3::Y*1.2,grip_end:-Vec3::Y*0.3,
