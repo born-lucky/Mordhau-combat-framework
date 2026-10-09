@@ -809,7 +809,8 @@ impl SimBackend for MhSim {
         let start_ue_cm = array(weapon_world.apply(start));
         let end_ue_cm = array(weapon_world.apply(end));
         if !start_ue_cm.iter().chain(end_ue_cm.iter()).all(|v| v.is_finite()) { return None; }
-        Some(CurrentWeaponTrace { start_local_ue_cm: array(start), end_local_ue_cm: array(end), start_ue_cm, end_ue_cm, weapon_world, alternate_mode: f.alternate_mode, owner_equipment: f.right_actor })
+        let grip = g.grip_modes.as_ref().map(|m| m[f.alternate_mode as usize].grip_location_local).unwrap_or(g.grip_location_local);
+        Some(CurrentWeaponTrace { grip_local_ue_cm: array(grip), start_local_ue_cm: array(start), end_local_ue_cm: array(end), start_ue_cm, end_ue_cm, weapon_world, alternate_mode: f.alternate_mode, owner_equipment: f.right_actor })
     }
     fn first_person(&self, id: u32) -> Option<bool> {
         let s = self.sim.as_ref()?;

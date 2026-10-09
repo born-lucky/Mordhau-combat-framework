@@ -92,11 +92,19 @@ pub struct Rt {
 #[derive(Component)]
 pub struct RtRoot;
 
+/// A host with its own interface can retain HUD events without routing input to hidden widgets.
+#[derive(Resource)]
+pub struct NativeUiInput(pub bool);
+impl Default for NativeUiInput {
+    fn default() -> Self { Self(true) }
+}
+
 #[derive(Component)]
 struct RtItem;
 
 pub fn plugin(app: &mut App) {
     app.init_resource::<Screen>()
+        .init_resource::<NativeUiInput>()
         .init_resource::<crate::slate::UiBlurs>() // (rust-render) blur elements for mh-runtime
         .init_resource::<MatchMap>()
         .init_resource::<UiCursor>()
@@ -196,6 +204,7 @@ fn mount(world: &mut World) {
 
 #[allow(clippy::too_many_arguments)]
 fn input(
+    enabled: Res<NativeUiInput>,
     rt: Option<NonSendMut<Rt>>,
     windows: Query<&Window>,
     cursor: Res<UiCursor>,
@@ -204,6 +213,10 @@ fn input(
     mut wheel: MessageReader<MouseWheel>,
     mut synth: MessageReader<UiInput>,
 ) {
+    if !enabled.0 {
+        keys.clear(); buttons.clear(); wheel.clear(); synth.clear();
+        return;
+    }
     let Some(mut rt) = rt else {
         keys.clear();
         buttons.clear();

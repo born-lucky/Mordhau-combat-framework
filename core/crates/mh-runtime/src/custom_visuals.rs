@@ -27,10 +27,12 @@ pub struct CustomPart {
     kind: PartKind,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum PartKind {
     Limb { start: Entity, end: Entity, radius: f32, arm: bool },
     Joint { bone: Entity, radius: f32, arm: bool },
+    Palm { wrist: Entity, knuckles: Vec<Entity> },
+    FingerTip { bone: Entity, local_axis: Vec3, length: f32 },
     Blade,
     Guard,
     Grip,
@@ -45,7 +47,7 @@ struct CustomWeaponReady;
 #[derive(Resource)]
 struct VisualAssets {
     capsule: Handle<Mesh>, sphere: Handle<Mesh>, blade: Handle<Mesh>,
-    guard: Handle<Mesh>, grip: Handle<Mesh>, plate: Handle<Mesh>,
+    guard: Handle<Mesh>, grip: Handle<Mesh>, plate: Handle<Mesh>, palm: Handle<Mesh>,
     steel: Handle<StandardMaterial>, ivory: Handle<StandardMaterial>, brass: Handle<StandardMaterial>,
 }
 
@@ -75,6 +77,7 @@ fn assets(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut mats: Re
         guard: meshes.add(Cuboid::new(0.20, 0.025, 0.035)),
         grip: meshes.add(Cuboid::new(0.032, 0.18, 0.032)),
         plate: meshes.add(Cuboid::new(0.38, 0.50, 0.03)),
+        palm: meshes.add(Cuboid::new(1.0, 1.0, 1.0)),
         steel: mats.add(material(Color::srgb(0.22, 0.34, 0.42), 0.65)),
         ivory: mats.add(material(Color::srgb(0.75, 0.79, 0.77), 0.25)),
         brass: mats.add(material(Color::srgb(0.76, 0.57, 0.25), 0.72)),
@@ -108,10 +111,41 @@ fn spawn_bodies(mut commands: Commands, a: Res<VisualAssets>,
                 a.capsule.clone(), if arm { a.ivory.clone() } else { a.steel.clone() });
         }
         for &(name, radius, arm) in &[("Head", 0.105, false), ("Hips", 0.115, false),
-            ("RightHand", 0.042, true), ("LeftHand", 0.042, true),
             ("RightForeArm", 0.047, true), ("LeftForeArm", 0.047, true)] {
             let Some(bone) = bone(name) else { continue };
             spawn_part(&mut commands, owner, f.id, PartKind::Joint { bone, radius, arm }, a.sphere.clone(), a.brass.clone());
+        }
+        // Use actual hand descendants and their bind frames. No separate finger animation/clock is invented.
+        for name in ["RightHand", "LeftHand"] {
+            let Some(wrist_index) = b.names.iter().position(|n| n.eq_ignore_ascii_case(name)) else { continue };
+            let digits: Vec<_> = b.names.iter().enumerate().filter_map(|(i, n)| {
+                let n = n.to_ascii_lowercase();
+                let digit = ["thumb", "index", "middle", "ring", "pinky", "little", "finger"].iter().any(|d| n.contains(d));
+                let mut parent = b.parents[i];
+                while parent >= 0 && parent as usize != wrist_index { parent = b.parents[parent as usize]; }
+                (digit && parent == wrist_index as i32).then_some(i)
+            }).collect();
+            let knuckles: Vec<_> = digits.iter().filter(|&&i| b.parents[i] == wrist_index as i32)
+                .map(|&i| b.joints[i]).collect();
+            if knuckles.is_empty() { warn!("Authored hand has no digit roots: {name}"); continue; }
+            spawn_part(&mut commands, owner, f.id, PartKind::Palm { wrist: b.joints[wrist_index], knuckles },
+                a.palm.clone(), a.ivory.clone());
+            for &i in &digits {
+                let parent_index = b.parents[i] as usize;
+                spawn_part(&mut commands, owner, f.id, PartKind::Joint { bone: b.joints[i], radius: 0.008, arm: true },
+                    a.sphere.clone(), a.brass.clone());
+                if parent_index != wrist_index {
+                    spawn_part(&mut commands, owner, f.id, PartKind::Limb { start: b.joints[parent_index], end: b.joints[i], radius: 0.007, arm: true },
+                        a.capsule.clone(), a.ivory.clone());
+                }
+                if !digits.iter().any(|&j| b.parents[j] == i as i32) {
+                    // The terminal bone has no tip joint. Its bind direction supplies a small authored distal pad,
+                    // rotated by that terminal bone's live pose, so it curls with the existing animation.
+                    let local_axis = b.rest[i].rotation.inverse() * b.rest[i].translation.normalize_or_zero();
+                    spawn_part(&mut commands, owner, f.id,
+                        PartKind::FingerTip { bone: b.joints[i], local_axis, length: 0.018 }, a.capsule.clone(), a.ivory.clone());
+                }
+            }
         }
         commands.entity(owner).insert(CustomBodyReady);
     }
@@ -159,7 +193,7 @@ fn update_parts(mut commands: Commands, config: Res<CustomVisuals>, sim: NonSend
         *vis = Visibility::Hidden;
         if !config.enabled { continue; }
         let Ok(parent) = roots.get(part.owner) else { continue };
-        let desired = match part.kind {
+        let desired = match part.kind.clone() {
             PartKind::Limb { start, end, radius, arm } => {
                 // Arms-only FP is an authored presentation choice, not original full-body visibility parity.
                 if fp == Some(part.fighter) && !dead.contains(&part.fighter) && !arm { continue; }
@@ -172,6 +206,22 @@ fn update_parts(mut commands: Commands, config: Res<CustomVisuals>, sim: NonSend
                 let Ok(bone) = roots.get(bone) else { continue };
                 Transform::from_translation(bone.translation()).with_scale(Vec3::splat(radius))
             }
+            PartKind::Palm { wrist, knuckles } => {
+                let Ok(wrist) = roots.get(wrist) else { continue };
+                let points: Vec<_> = knuckles.iter().filter_map(|&e| roots.get(e).ok().map(|g| g.translation())).collect();
+                if points.is_empty() { continue; }
+                let knuckle = points.iter().copied().sum::<Vec3>() / points.len() as f32;
+                let across = points.last().copied().unwrap() - points[0];
+                let Some((position, rotation, length)) = segment(wrist.translation(), knuckle, across) else { continue };
+                Transform { translation: position, rotation, scale: Vec3::new(0.060, length.max(0.025), 0.025) }
+            }
+            PartKind::FingerTip { bone, local_axis, length } => {
+                let Ok(bone) = roots.get(bone) else { continue };
+                let start = bone.translation();
+                let end = start + bone.compute_transform().rotation * local_axis * length;
+                let Some((translation, rotation, length)) = segment(start, end, Vec3::X) else { continue };
+                Transform { translation, rotation, scale: Vec3::new(0.014, length * 0.5, 0.014) }
+            }
             PartKind::LeftPlate => {
                 if sim.0.left_world(part.fighter).is_none() { continue; }
                 parent.compute_transform()
@@ -182,12 +232,19 @@ fn update_parts(mut commands: Commands, config: Res<CustomVisuals>, sim: NonSend
                 // attack history or a separate invented weapon orientation.
                 let to_m = |p: [f32; 3]| Vec3::new(p[0], p[2], p[1]) * 0.01;
                 let (start, end) = (parent.transform_point(to_m(trace.start_local_ue_cm)), parent.transform_point(to_m(trace.end_local_ue_cm)));
-                let Some((centre, rotation, length)) = segment(start, end, parent.compute_transform().rotation * Vec3::X) else { continue };
+                let Some((_centre, rotation, _length)) = segment(start, end, parent.compute_transform().rotation * Vec3::X) else { continue };
                 let direction = rotation * Vec3::Y;
+                // Collision start is not a grip socket. Centre the authored handle at GripLocationLocal in
+                // the same interpolated held component, so the fingers and sword share the drawn pose.
+                let grip = parent.transform_point(to_m(trace.grip_local_ue_cm));
+                let guard = grip + direction * 0.105;
                 match kind {
-                    PartKind::Blade => Transform { translation: centre, rotation, scale: Vec3::new(1.0, length, 1.0) },
-                    PartKind::Guard => Transform { translation: start, rotation, scale: Vec3::ONE },
-                    PartKind::Grip => Transform { translation: start - direction * 0.10, rotation, scale: Vec3::ONE },
+                    PartKind::Blade => {
+                        let Some((translation, rotation, length)) = segment(guard, end, rotation * Vec3::X) else { continue };
+                        Transform { translation, rotation, scale: Vec3::new(1.0, length, 1.0) }
+                    }
+                    PartKind::Guard => Transform { translation: guard, rotation, scale: Vec3::ONE },
+                    PartKind::Grip => Transform { translation: grip, rotation, scale: Vec3::ONE },
                     _ => unreachable!(),
                 }
             }
@@ -198,7 +255,7 @@ fn update_parts(mut commands: Commands, config: Res<CustomVisuals>, sim: NonSend
         // Native FP shadow proxies continue to cast, including death. Visible authored
         // FP parts must not add a second shadow; the 3P figure casts its own silhouette.
         let fp_body = fp == Some(part.fighter)
-            && matches!(part.kind, PartKind::Limb { .. } | PartKind::Joint { .. });
+            && matches!(part.kind, PartKind::Limb { .. } | PartKind::Joint { .. } | PartKind::Palm { .. } | PartKind::FingerTip { .. });
         if fp_body != no_cast {
             if fp_body { commands.entity(entity).insert(bevy::light::NotShadowCaster); }
             else { commands.entity(entity).remove::<bevy::light::NotShadowCaster>(); }
@@ -214,6 +271,37 @@ fn original_visibility(config: Res<CustomVisuals>,
         // ViewPart visibility is restored by first_person_parts earlier this frame.
         else if part.is_none() { *v = Visibility::Inherited; }
     }
+}
+
+/// Read-only presentation evidence for captures: which authored parts exist and where the handle sits.
+pub fn diagnostics(world: &mut World) -> serde_json::Value {
+    let mut query = world.query::<(&CustomPart, &GlobalTransform, &Visibility)>();
+    let mut fighters = std::collections::BTreeMap::<u32, serde_json::Value>::new();
+    for (part, transform, visibility) in query.iter(world) {
+        let row = fighters.entry(part.fighter).or_insert_with(|| serde_json::json!({
+            "palms":0, "finger_joints":0, "finger_links":0, "finger_tips":0
+        }));
+        let key = match part.kind {
+            PartKind::Palm { .. } => Some("palms"),
+            PartKind::FingerTip { .. } => Some("finger_tips"),
+            PartKind::Joint { radius, .. } if radius <= 0.01 => Some("finger_joints"),
+            PartKind::Limb { radius, .. } if radius <= 0.01 => Some("finger_links"),
+            PartKind::Grip => {
+                row["grip_metres"] = serde_json::json!(transform.translation().to_array());
+                row["grip_visible"] = serde_json::json!(*visibility != Visibility::Hidden);
+                if let (Some(parent), Some(trace)) = (world.get::<GlobalTransform>(part.owner),
+                    world.non_send::<Sim>().0.current_weapon_trace(part.fighter)) {
+                    let g = trace.grip_local_ue_cm;
+                    let expected = parent.transform_point(Vec3::new(g[0], g[2], g[1]) * 0.01);
+                    row["grip_error_metres"] = serde_json::json!(transform.translation().distance(expected));
+                }
+                None
+            }
+            _ => None,
+        };
+        if let Some(key) = key { row[key] = (row[key].as_u64().unwrap_or(0) + 1).into(); }
+    }
+    serde_json::json!(fighters)
 }
 
 #[cfg(test)]

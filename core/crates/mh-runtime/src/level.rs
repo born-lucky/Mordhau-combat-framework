@@ -23,7 +23,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::time::Instant;
 
-pub const DEFAULT_MAP: &str = "Mordhau/Content/Mordhau/Maps/Arena_Map/DU_Arena";
+pub const DEFAULT_MAP: &str = "TestLevel";
 
 pub struct LevelPlugin;
 

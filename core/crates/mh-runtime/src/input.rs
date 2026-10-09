@@ -984,8 +984,7 @@ pub fn player_input(
     flycam: Res<crate::camera::CamMode>,
     cams: Query<&Projection, With<crate::camera::FlyCam>>,
     time: Res<Time<Real>>,
-    screen: Option<Res<mh_ui::Screen>>,
-    rt: Option<NonSend<mh_ui::real::Rt>>,
+    menu: Res<crate::framework_ui::LabMenu>,
     headless_input: Option<Res<HeadlessRealInput>>,
     dev: Option<Res<crate::devmenu::DevMenu>>,
 ) {
@@ -995,7 +994,7 @@ pub fn player_input(
         // no pawn yet (the front end, a match loading): remember whether a menu is up, so the first frame of play after
         // it (Start Match from the front end) captures the cursor as the game's input mode change does
         // (BP_MordhauHUD ReceiveBeginPlay@550 CustomSetInputModeGameOnly)
-        pc.menu_open = screen.as_deref().is_some_and(|s| *s == mh_ui::Screen::MainMenu) || rt.as_ref().is_some_and(|r| r.ui.main_menu_visible()) || pc.menu_open;
+        pc.menu_open = menu.open;
         return;
     };
     if !pc.yaw_initialised {
@@ -1020,18 +1019,13 @@ pub fn player_input(
     if headless {
         pc.cursor_grabbed = true;
     }
-    // cursor: grabbed while playing; Escape releases, a click grabs again (runtime glue, not game behaviour). While the
-    // game's front end shows a menu (rust-ui: Screen::MainMenu, or BP_MainMenu up as the pause menu in a match) the
-    // cursor is free, as the game's UI input mode shows it
-    let ui_menu = screen.as_deref().is_some_and(|s| *s == mh_ui::Screen::MainMenu) || rt.as_ref().is_some_and(|r| r.ui.main_menu_visible());
+    // The independent framework menu releases the cursor and owns input while open.
+    let ui_menu = menu.open;
     // the Development menu (devmenu.rs, F9): the cursor is free and the pawn gets no input while it is open
     let ui_menu = ui_menu || dev.as_ref().is_some_and(|d| d.open);
-    // The escape menu: the game shows it in the UI input mode (cursor free, no pawn input) and closing it (Return,
-    // Escape again) goes back to the game input mode with the cursor captured. Without the in-match UI (no Rt) Escape
-    // only frees the cursor and a click captures it again (runtime glue).
     let had_menu = pc.menu_open;
     pc.menu_open = ui_menu;
-    if ui_menu || (keys.just_pressed(KeyCode::Escape) && rt.is_none()) {
+    if ui_menu {
         pc.cursor_grabbed = false;
     } else if had_menu || mouse.just_pressed(MouseButton::Left) {
         pc.cursor_grabbed = true;
@@ -1043,6 +1037,10 @@ pub fn player_input(
     if ui_menu || had_menu {
         // menu up (or closed by this frame's click / key): the input belongs to the UI, the pawn gets none
         for _ in wheel_ev.read() {}
+        inputs.0.insert(pc.id, FrameInput { release_block: true, ..default() });
+        pc.wants_strike = false;
+        pc.wants_stab = false;
+        pc.flip_held = false;
         return;
     }
     let (mut wu, mut wd) = (false, false);
@@ -1398,6 +1396,25 @@ mod tests {
             let mut fi = FrameInput::default();
             pc.step(&frame(0.0, 0.0, &["Parry"], &[]), &uncapped(1), &mut fi);
             assert_eq!(fi.parry, Some(want), "mouse x {mx}: parry request {:?}", fi.parry);
+        }
+    }
+
+    /// Native GetAnglingVector / RequestParry use a strict sign check, without a flick-distance threshold.
+    /// Reversal replaces the prior X value in FlushPendingAnglingInputs, even after a large opposite movement.
+    #[test]
+    fn single_count_reversal_selects_parry_side_at_saved_sensitivity() {
+        for sensitivity in [0.000350, 0.070000] {
+            for (old, tiny, inverse, want) in [(1000.0, -1.0, 0, 1), (-1000.0, 1.0, 0, 0),
+                (1000.0, -1.0, 1, 0), (-1000.0, 1.0, 1, 1)] {
+                let mut pc = pc_with(Some(SAVED));
+                pc.axis_config.get_mut("MouseX").unwrap().sensitivity = sensitivity;
+                pc.settings.inverse_attack_direction_x = inverse;
+                pc.step(&frame(old, 0.0, &[], &[]), &uncapped(0), &mut FrameInput::default());
+                pc.step(&frame(tiny, 0.0, &[], &[]), &uncapped(1), &mut FrameInput::default());
+                let mut fi = FrameInput::default();
+                pc.step(&frame(0.0, 0.0, &["Parry"], &[]), &uncapped(2), &mut fi);
+                assert_eq!(fi.parry, Some(want), "sensitivity {sensitivity}, count {tiny}, inverse {inverse}");
+            }
         }
     }
 

@@ -75,7 +75,7 @@ impl Plugin for DevMenuPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<DevMenu>()
             .init_resource::<ParryBoxDebug>()
-            .add_systems(Update, toggle.before(crate::input::player_input))
+            .add_systems(Update, toggle.before(crate::input::player_input).after(crate::framework_ui::LabInput))
             .add_systems(Update, (build, clicks, labels).chain().after(toggle))
             .add_systems(Update, apply.after(labels))
             .add_systems(Update, pawn_debug.after(crate::sim::tick_sim_frame).after(apply))

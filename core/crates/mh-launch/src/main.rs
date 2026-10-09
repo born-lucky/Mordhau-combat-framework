@@ -12,7 +12,7 @@
 use std::path::PathBuf;
 use std::process::Command;
 
-const DEFAULT_MAP: &str = "Mordhau/Content/Mordhau/Maps/Arena_Map/DU_Arena";
+const DEFAULT_MAP: &str = "TestLevel";
 
 /// the repo root: the launcher's own folder or one of its parents holding core/target/release
 fn repo_root() -> Option<PathBuf> {

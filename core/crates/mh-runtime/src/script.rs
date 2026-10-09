@@ -347,13 +347,16 @@ fn state_json(world: &mut World) -> serde_json::Value {
         "peak_particles": f.peak_particles, "missing": f.missing, "unsupported": f.unsupported_modules.len()}));
     let fx_diagnostics = world.get_non_send_resource::<mh_fx::FxState>().map(|f|
         f.diagnostics(world.get_resource::<Assets<mh_fx::ue_material::UeParticleMaterial>>()));
-    let presentation = {
+    let mut presentation = {
         let sim = world.non_send::<Sim>();
         let flags:Vec<_> = sim.0.fighters().iter().map(|f|json!({"fighter":f.id,
             "first_person":sim.0.first_person(f.id),"raw_camera_1p":sim.0.raw_camera_1p(f.id)})).collect();
         json!({"custom_enabled":world.get_resource::<crate::custom_visuals::CustomVisuals>().map(|c|c.enabled),
+            "framework_menu":world.get_resource::<crate::framework_ui::LabMenu>(),
+            "pose_bones":sim.0.pose_bones(),
             "camera_fields":flags})
     };
+    presentation["authored_visuals"] = crate::custom_visuals::diagnostics(world);
     let audio = world.get_resource::<mh_audio::AudioLog>().map(|a| json!({"plays": a.rows.len(), "missing": a.missing,
         "rows": a.rows.iter().rev().take(10).map(|r| r.json()).collect::<Vec<_>>()}));
     let ui = world.get_resource::<mh_ui::HudVitals>().map(|v| json!({"visible": v.visible, "health": v.health, "stamina": v.stamina}));

@@ -108,6 +108,8 @@ pub struct RawCamera1P {
 /// weapon transform in UE world cm; absent socket/pose/weapon is explicitly unsupported.
 #[derive(Clone, Copy, Debug)]
 pub struct CurrentWeaponTrace {
+    /// Actual active-mode GripLocationLocal; independent of the collision trace start.
+    pub grip_local_ue_cm: [f32; 3],
     pub start_local_ue_cm: [f32; 3],
     pub end_local_ue_cm: [f32; 3],
     pub start_ue_cm: [f32; 3],

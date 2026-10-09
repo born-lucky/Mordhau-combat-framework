@@ -218,6 +218,10 @@ fn parse_args() -> Result<Args, String> {
 }
 
 fn main() -> AppExit {
+    if let Err(e) = framework_ui::initialize_settings() {
+        eprintln!("framework settings: {e}");
+        return AppExit::from_code(2);
+    }
     // Separate private v1 gate: even direct/headless entry requires original install and local imports.
     let local_inputs = match mh_install::RuntimeInputs::discover() {
         Ok(inputs) => inputs,
@@ -276,9 +280,7 @@ fn main() -> AppExit {
         }
         None => {
             // --bots N: one player-driven fighter + N bots (a duel vs a bot = --bots 1); else N plain fighters
-            let mut s = if args.menu || args.legacy_menu {
-                String::new()
-            } else if args.bots > 0 {
+            let mut s = if args.bots > 0 {
                 format!("load_map {}\nspawn 1\nspawn_bot {}\nwait 30\ndump_state final\n", args.map, args.bots)
             } else {
                 format!("load_map {}\nspawn {}\nwait 30\ndump_state final\n", args.map, args.fighters)
@@ -449,10 +451,12 @@ fn main() -> AppExit {
         .add_plugins(uetint::UeTintPlugin)
         .add_plugins(uepost_render::UePostPlugin)
         // rust-assets' UMG HUD / Cascade particles / SoundCue plugins, fed by bridge.rs; they share this mount
-        .add_plugins((mh_ui::UiPlugin, mh_fx::FxPlugin, mh_audio::AudioPlugin, bridge::BridgePlugin, menu::MenuPlugin { open: args.legacy_menu, real: args.menu }, gameworld::GameWorldPlugin))
+        .add_plugins((mh_ui::UiPlugin, mh_fx::FxPlugin, mh_audio::AudioPlugin, bridge::BridgePlugin, menu::MenuPlugin { open: false, real: false }, gameworld::GameWorldPlugin))
         .add_plugins((level::LevelPlugin, sim::SimPlugin, fighter::FighterPlugin, camera::CameraPlugin, hud::HudPlugin { show: args.debug_hud }, script::ScriptPlugin, input::InputPlugin, memwatch::MemWatchPlugin, armory_host::ArmoryHostPlugin))
         .add_plugins(settings_apply::SettingsApplyPlugin)
         .add_plugins(framework_ui::FrameworkUiPlugin)
+        .insert_resource(framework_ui::LabMenu { open: args.menu || args.legacy_menu })
+        .insert_resource(mh_ui::real::NativeUiInput(false))
         .add_plugins(custom_visuals::CustomVisualsPlugin)
         .insert_resource(custom_visuals::CustomVisuals { enabled: true })
         .add_plugins(devmenu::DevMenuPlugin)
@@ -463,7 +467,7 @@ fn main() -> AppExit {
     // opened from the front end does (BP_MordhauHUD; Escape -> the player controller's "Show Main Menu" action,
     // DefaultInput.ini, opens BP_MainMenu as the escape menu: mh-ui host.rs key_down). Windowed only: offscreen
     // evidence scripts opt in with `ui match`.
-    if args.mode == Mode::Windowed && !args.menu && !args.legacy_menu {
+    if args.mode == Mode::Windowed {
         app.insert_resource(mh_ui::Screen::Match).insert_resource(mh_ui::MatchMap(level::match_map_name(&args.map)));
     }
     app.run()
