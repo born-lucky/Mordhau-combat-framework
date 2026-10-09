@@ -17,7 +17,9 @@ struct VitalsPanel;
 pub struct LabMenu { pub open: bool }
 
 #[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub stru/// Independent writable settings. Fresh installs use native defaults (including kick on F).
+pub struct LabInput;
+
+/// Independent writable settings. Fresh installs use native defaults (including kick on F).
 /// Importing personal vanilla bindings is an explicit action in the controls editor.
 /// Call before Bevy creates threads; neither the game nor the main rewrite's settings are modified.
 pub fn initialize_settings() -> std::io::Result<()> {
@@ -40,10 +42,6 @@ fn copy_input_if_missing(source: &std::path::Path, target: &std::path::Path) -> 
         Ok(mut file) => file.write_all(&bytes),
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
         Err(e) => Err(e),
-    }
-}
-
-(e),
     }
 }
 
