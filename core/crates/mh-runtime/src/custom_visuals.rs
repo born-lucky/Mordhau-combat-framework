@@ -29,8 +29,8 @@ pub struct CustomPart {
 
 #[derive(Clone)]
 enum PartKind {
-    Limb { start: Entity, end: Entity, radius: f32, arm: bool },
-    Joint { bone: Entity, radius: f32, arm: bool },
+    Limb { start: Entity, end: Entity, radius: f32, arm: bool, first_person: bool },
+    Joint { bone: Entity, radius: f32, arm: bool, first_person: bool },
     Palm { wrist: Entity, knuckles: Vec<Entity> },
     FingerTip { bone: Entity, local_axis: Vec3, length: f32 },
     Blade,
@@ -256,19 +256,22 @@ fn spawn_bodies(mut commands: Commands, a: Res<VisualAssets>,
         ("LeftArm", "LeftForeArm", 0.050, true), ("LeftForeArm", "LeftHand", 0.042, true),
         ("RightUpLeg", "RightLeg", 0.065, false), ("RightLeg", "RightFoot", 0.052, false),
         ("LeftUpLeg", "LeftLeg", 0.065, false), ("LeftLeg", "LeftFoot", 0.052, false),
+        ("RightFoot", "RightToeBase", 0.050, false), ("LeftFoot", "LeftToeBase", 0.050, false),
     ];
     for (owner, b, parent) in &bodies {
         let Ok(f) = fighters.get(parent.parent()) else { continue };
         let bone = |name: &str| b.names.iter().position(|n| n.eq_ignore_ascii_case(name)).and_then(|i| b.joints.get(i).copied());
         for &(start, end, radius, arm) in LIMBS {
+            let first_person = arm || start.contains("Leg") || start.ends_with("Foot");
             let (Some(start), Some(end)) = (bone(start), bone(end)) else { continue };
-            spawn_part(&mut commands, owner, f.id, PartKind::Limb { start, end, radius, arm },
+            spawn_part(&mut commands, owner, f.id, PartKind::Limb { start, end, radius, arm, first_person },
                 a.capsule.clone(), if arm { a.ivory.clone() } else { a.steel.clone() });
         }
         for &(name, radius, arm) in &[("Head", 0.105, false), ("Hips", 0.115, false),
             ("RightForeArm", 0.047, true), ("LeftForeArm", 0.047, true)] {
             let Some(bone) = bone(name) else { continue };
-            spawn_part(&mut commands, owner, f.id, PartKind::Joint { bone, radius, arm }, a.sphere.clone(), a.brass.clone());
+            spawn_part(&mut commands, owner, f.id, PartKind::Joint { bone, radius, arm,
+                first_person: arm || name == "Hips" }, a.sphere.clone(), a.brass.clone());
         }
         // Use actual hand descendants and their bind frames. No separate finger animation/clock is invented.
         for name in ["RightHand", "LeftHand"] {
@@ -287,10 +290,10 @@ fn spawn_bodies(mut commands: Commands, a: Res<VisualAssets>,
                 a.palm.clone(), a.ivory.clone());
             for &i in &digits {
                 let parent_index = b.parents[i] as usize;
-                spawn_part(&mut commands, owner, f.id, PartKind::Joint { bone: b.joints[i], radius: 0.008, arm: true },
+                spawn_part(&mut commands, owner, f.id, PartKind::Joint { bone: b.joints[i], radius: 0.008, arm: true, first_person: true },
                     a.sphere.clone(), a.brass.clone());
                 if parent_index != wrist_index {
-                    spawn_part(&mut commands, owner, f.id, PartKind::Limb { start: b.joints[parent_index], end: b.joints[i], radius: 0.007, arm: true },
+                    spawn_part(&mut commands, owner, f.id, PartKind::Limb { start: b.joints[parent_index], end: b.joints[i], radius: 0.007, arm: true, first_person: true },
                         a.capsule.clone(), a.ivory.clone());
                 }
                 if !digits.iter().any(|&j| b.parents[j] == i as i32) {
@@ -353,15 +356,15 @@ fn update_parts(mut commands: Commands, config: Res<CustomVisuals>, sim: NonSend
         if !config.enabled { continue; }
         let Ok(parent) = roots.get(part.owner) else { continue };
         let desired = match part.kind.clone() {
-            PartKind::Limb { start, end, radius, arm } => {
-                // Arms-only FP is an authored presentation choice, not original full-body visibility parity.
-                if fp == Some(part.fighter) && !dead.contains(&part.fighter) && !arm { continue; }
+            PartKind::Limb { start, end, radius, first_person, .. } => {
+                // Native CreateFPMeshIfNone excludes head/torso, not the lower body.
+                if fp == Some(part.fighter) && !dead.contains(&part.fighter) && !first_person { continue; }
                 let (Ok(start), Ok(end)) = (roots.get(start), roots.get(end)) else { continue };
                 let Some((position, rotation, length)) = segment(start.translation(), end.translation(), Vec3::X) else { continue };
                 Transform { translation: position, rotation, scale: Vec3::new(radius * 2.0, length * 0.5, radius * 2.0) }
             }
-            PartKind::Joint { bone, radius, arm } => {
-                if fp == Some(part.fighter) && !dead.contains(&part.fighter) && !arm { continue; }
+            PartKind::Joint { bone, radius, first_person, .. } => {
+                if fp == Some(part.fighter) && !dead.contains(&part.fighter) && !first_person { continue; }
                 let Ok(bone) = roots.get(bone) else { continue };
                 Transform::from_translation(bone.translation()).with_scale(Vec3::splat(radius))
             }
@@ -423,9 +426,16 @@ pub fn diagnostics(world: &mut World) -> serde_json::Value {
     let mut fighters = std::collections::BTreeMap::<u32, serde_json::Value>::new();
     for (part, transform, visibility) in query.iter(world) {
         let row = fighters.entry(part.fighter).or_insert_with(|| serde_json::json!({
-            "palms":0, "finger_joints":0, "finger_links":0, "finger_tips":0
+            "palms":0, "finger_joints":0, "finger_links":0, "finger_tips":0,
+            "visible_lower_body_parts":0, "visible_head_torso_parts":0
         }));
         if *visibility != Visibility::Hidden {
+            let body_key = match part.kind {
+                PartKind::Limb { arm:false,first_person:true,.. } | PartKind::Joint { arm:false,first_person:true,.. } => Some("visible_lower_body_parts"),
+                PartKind::Limb { arm:false,first_person:false,.. } | PartKind::Joint { arm:false,first_person:false,.. } => Some("visible_head_torso_parts"),
+                _ => None,
+            };
+            if let Some(key) = body_key { row[key] = (row[key].as_u64().unwrap_or(0)+1).into(); }
             let label = match part.kind {
                 PartKind::Blade => Some("blade"), PartKind::Guard => Some("guard"),
                 PartKind::Grip => Some("handle"), PartKind::Pommel => Some("pommel"),
