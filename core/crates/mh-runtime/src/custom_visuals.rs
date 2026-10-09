@@ -124,7 +124,7 @@ fn weapon_kind(path: &str) -> Option<WeaponKind> {
     let path = path.rsplit('/').next().unwrap_or(path).to_ascii_lowercase();
     if ["halberd", "poleaxe", "billhook", "bardiche"].iter().any(|n| path.contains(n)) { Some(WeaponKind::Poleaxe) }
     else if ["spear", "pitchfork"].iter().any(|n| path.contains(n)) { Some(WeaponKind::Spear) }
-    else if ["sword", "dagger", "knife", "rapier", "messer", "falchion", "falx", "estoc"].iter().any(|n| path.contains(n)) { Some(WeaponKind::Sword) }
+    else if ["sword", "zweihander", "dagger", "knife", "rapier", "messer", "falchion", "falx", "estoc", "scimitar", "cleaver"].iter().any(|n| path.contains(n)) { Some(WeaponKind::Sword) }
     else if path.contains("axe") { Some(WeaponKind::Axe) }
     else if ["hammer", "maul", "mace", "eveningstar"].iter().any(|n| path.contains(n)) { Some(WeaponKind::Hammer) }
     else if ["staff", "club", "stick"].iter().any(|n| path.contains(n)) { Some(WeaponKind::Staff) }
@@ -486,6 +486,7 @@ mod tests {
         assert_eq!(weapon_kind("Specific/TwoHandedSword/BP_WarAxe"),Some(WeaponKind::Axe));
         assert_eq!(weapon_kind("Specific/TwoHandedSword/BP_2Hmace"),Some(WeaponKind::Hammer));
         assert_eq!(weapon_kind("Specific/TwoHandedSword/BP_Greatsword"),Some(WeaponKind::Sword));
+        assert_eq!(weapon_kind("Specific/TwoHandedSword/BP_Zweihander"),Some(WeaponKind::Sword));
         assert_eq!(weapon_kind("Specific/Polearms/BP_Halberd"),Some(WeaponKind::Poleaxe));
         assert_eq!(weapon_kind("Specific/TwoHandedSword/BP_Unknown"),None);
     }
