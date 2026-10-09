@@ -242,7 +242,7 @@ pub struct ScriptPlugin;
 
 impl Plugin for ScriptPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<KeyTaps>().init_resource::<UiClicks>().add_systems(Last, run_script).add_systems(First, (release_taps, ui_clicks));
+        app.init_resource::<KeyTaps>().init_resource::<UiClicks>().add_systems(Last, run_script.before(mh_audio::CaptureExport)).add_systems(First, (release_taps, ui_clicks));
     }
 }
 

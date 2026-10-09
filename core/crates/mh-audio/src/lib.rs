@@ -199,13 +199,16 @@ impl Plugin for AudioPlugin {
             if let Some(path) = std::env::var_os("MH_AUDIO_CAPTURE") {
                 app.world_mut().resource_mut::<OfflineMix>().capture = Some(Vec::new());
                 app.insert_resource(AudioCapture(std::path::PathBuf::from(path)))
-                    .add_systems(Last, export_capture);
+                    .add_systems(Last, export_capture.in_set(CaptureExport));
             }
         }
     }
 }
 
 /// Optional offline evidence. Normal interactive/device playback allocates no recording buffer.
+#[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct CaptureExport;
+
 #[derive(Resource)]
 struct AudioCapture(std::path::PathBuf);
 
