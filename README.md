@@ -47,9 +47,11 @@ The current diagnostic setup command is:
 python tools/setup.py --game-dir "YOUR-MORDHAU-INSTALL" --cache-dir "YOUR-LOCAL-CACHE" --json
 ```
 
-Native records and shadow-capsule import have been checked against the installed
-original files. Full combat-matrix generation and the redistributable native
-physics bridge remain unfinished. Accordingly, setup currently returns
+Native records, shadow capsules, and all 150 mode-bytecode entries have been
+generated from the installed original files and checked. Supplying our
+source-built reader with `--pak-tool PATH` enables the shadow and mode stages.
+Full combat-matrix generation, local particle inputs, and the redistributable
+native physics bridge remain unfinished. Accordingly, setup currently returns
 runtime_ready:false; **this command does not yet produce a runnable game**.
 See [local import status](docs/LOCAL_IMPORT.md) for dependencies and stage details.
 
