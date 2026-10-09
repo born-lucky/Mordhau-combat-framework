@@ -1,6 +1,6 @@
 # Rights and notices
 
-This repository is a private development snapshot. No broad open-source license
+This repository is a development source preview. No broad open-source license
 is granted here while ownership and third-party redistribution review remain open.
 Source and dependency provenance review is recorded separately from original-game
 assets. The two rewrite WGSL programs are authored source; their review is described

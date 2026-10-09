@@ -92,7 +92,7 @@ def main():
     state = json.loads((root/"release-state.json").read_text(encoding="utf-8"))
     if args.public_release and (not state.get("public_release_ready") or state.get("blockers")):
         errors.append("Public playable release blocked: complete importer, licensing and binary/clean-install review first")
-    result = {"scope": "source-only private staging", "public_release_ready": state.get("public_release_ready", False), "file_count": len(files), "errors": errors}
+    result = {"scope": "source-only", "public_release_ready": state.get("public_release_ready", False), "file_count": len(files), "errors": errors}
     print(json.dumps(result, indent=2))
     return 1 if errors else 0
 

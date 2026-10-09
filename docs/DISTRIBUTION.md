@@ -22,7 +22,7 @@ archives, CI artifacts, crash attachments, or issue submissions.
 A future release archive must be made from an explicit manifest of reviewed source
 or independently approved binaries. Do not zip a developer working directory.
 Run the tree audit before every commit and packaging step. The public-release gate
-must remain closed while any blocker is unresolved; no automatic release job exists.
+for playable binaries must remain closed while any blocker is unresolved. The public source preview and developer demonstration footage do not constitute a playable release; no automatic release job exists.
 
 File checks do not prove ownership. Do not add fake ownership claims, Steam API
 impersonation, game DLL replacement, downloaders for game files, or DRM bypasses.
