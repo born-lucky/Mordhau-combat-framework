@@ -340,9 +340,20 @@ fn state_json(world: &mut World) -> serde_json::Value {
     let pak_body = world.get_resource::<crate::fighter::PakBody>().map(|p| p.info.clone());
     let weapons = world.get_resource::<crate::weapon::WeaponCache>().map(|w| w.info.clone());
     let bridge = world.get_resource::<crate::bridge::BridgeState>().map(|b| json!({"events": b.events, "fx_sent": b.fx_sent,
-        "cues_sent": b.cues_sent, "hit_markers": b.hit_markers, "triggers": b.triggers, "map_ambience": b.map_ambience, "map_sounds": b.map_sounds, "map_effects": b.map_effects, "map_spawners": b.map_spawners, "map_volumes": b.map_volumes, "voices": b.voices.keys().collect::<Vec<_>>(), "last_events": b.last_events}));
+        "cues_sent": b.cues_sent, "hit_markers": b.hit_markers, "triggers": b.triggers, "map_ambience": b.map_ambience, "map_sounds": b.map_sounds, "map_effects": b.map_effects, "map_spawners": b.map_spawners, "map_volumes": b.map_volumes, "voices": b.voices.keys().collect::<Vec<_>>(), "last_events": b.last_events,
+        "parry_fx_notes": b.parry_fx_notes}));
     let fx = world.get_resource::<mh_fx::FxStats>().map(|f| json!({"started": f.started.len(), "live_systems": f.live_systems,
+        "live_particles":f.live_particles,"started_systems":f.started,
         "peak_particles": f.peak_particles, "missing": f.missing, "unsupported": f.unsupported_modules.len()}));
+    let fx_diagnostics = world.get_non_send_resource::<mh_fx::FxState>().map(|f|
+        f.diagnostics(world.get_resource::<Assets<mh_fx::ue_material::UeParticleMaterial>>()));
+    let presentation = {
+        let sim = world.non_send::<Sim>();
+        let flags:Vec<_> = sim.0.fighters().iter().map(|f|json!({"fighter":f.id,
+            "first_person":sim.0.first_person(f.id),"raw_camera_1p":sim.0.raw_camera_1p(f.id)})).collect();
+        json!({"custom_enabled":world.get_resource::<crate::custom_visuals::CustomVisuals>().map(|c|c.enabled),
+            "camera_fields":flags})
+    };
     let audio = world.get_resource::<mh_audio::AudioLog>().map(|a| json!({"plays": a.rows.len(), "missing": a.missing,
         "rows": a.rows.iter().rev().take(10).map(|r| r.json()).collect::<Vec<_>>()}));
     let ui = world.get_resource::<mh_ui::HudVitals>().map(|v| json!({"visible": v.visible, "health": v.health, "stamina": v.stamina}));
@@ -380,7 +391,7 @@ fn state_json(world: &mut World) -> serde_json::Value {
     let memwatch = world.get_resource::<crate::memwatch::MemWatch>().map(|r| serde_json::to_value(r).unwrap_or_default());
     let sc = world.resource::<Script>();
     json!({"clocks": clocks, "memwatch": memwatch, "armory": armory, "armory_preview": armory_preview, "frame": sc.frame, "secs": sc.started.elapsed().as_secs_f32(), "mode": sc.mode, "counts": c, "camera": cam, "camera1p_probe": probe,
-           "hlod": {"proxies_shown": hl_shown, "meshes_hidden_by_hlod": hl_hidden}, "look": look, "pak_body": pak_body, "weapons": weapons, "bridge": bridge, "fx": fx, "audio": audio, "hud": ui, "ui_focus": ui_focus, "sim_level": sim_level,
+           "hlod": {"proxies_shown": hl_shown, "meshes_hidden_by_hlod": hl_hidden}, "look": look, "pak_body": pak_body, "weapons": weapons, "bridge": bridge, "fx": fx, "fx_diagnostics":fx_diagnostics,"presentation":presentation,"audio": audio, "hud": ui, "ui_focus": ui_focus, "sim_level": sim_level,
            "spec_missing": spec_missing, "player": player, "cam_mode": cam_mode, "rig": rig, "profiles": profiles, "menu": menu, "backdrop": backdrop, "menu_ui": menu_ui, "gameworld": gameworld, "motion": motion, "trails": trails, "smear": smear, "weapon_blood": weapon_blood, "shakes": shakes, "rand_seed": seed, "step_per_frame": step_mode, "level": level, "sim": sim, "development": dev, "tracers": tracers})
 }
 

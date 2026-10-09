@@ -3217,6 +3217,7 @@ dependencies = [
  "mh-assets",
  "mh-audio",
  "mh-character",
+ "mh-framework",
  "mh-fx",
  "mh-host",
  "mh-install",

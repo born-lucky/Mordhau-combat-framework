@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 mh-install = { path = "../mh-install" }
+mh-framework = { path = "../mh-framework" }
 serde.workspace = true
 serde_json.workspace = true
 # R2: data from the user's paks (rust-pak / rust-assets crates) and the sim core (rust-combat)

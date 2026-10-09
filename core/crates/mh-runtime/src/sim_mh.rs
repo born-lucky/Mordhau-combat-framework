@@ -8,7 +8,7 @@
 //! (Triternion data, git-ignored); a pak-side CharacterSource is rust-character's. Without either the runtime falls
 //! back to the stub (evidence: summary.json sim_note).
 
-use crate::sim::{FighterView, FrameInput, SimBackend};
+use crate::sim::{CurrentWeaponTrace, FighterView, FrameInput, RawCamera1P, SimBackend};
 use mh_sim::{FighterDesc, Sim, SimInput};
 use mordhau_core::ue::{FTransform, FVector};
 use std::collections::HashMap;
@@ -56,6 +56,7 @@ pub struct MhSim {
     pub repo: std::path::PathBuf,
     pub out_events: Vec<serde_json::Value>,
     pub out_tracers: Vec<crate::sim::TracerSegment>,
+    raw_cameras_1p: HashMap<u32, RawCamera1P>,
     pub cam_world: Option<Arc<mh_level::collision::CollisionWorld>>,
     /// Original cooked weapon-query owner for this map, separate from movement collision.
     pub complex_world: Option<Rc<mh_level::complex::ComplexTraceWorld>>,
@@ -161,6 +162,7 @@ impl MhSim {
             repo: repo.to_path_buf(),
             out_events: Vec::new(),
             out_tracers: Vec::new(),
+            raw_cameras_1p: HashMap::new(),
             cam_world: None,
             complex_world: None,
             surfaces: HashMap::new(),
@@ -399,6 +401,7 @@ impl SimBackend for MhSim {
         // Retained old sweeps must not be drained back into the new world's tracer renderer.
         self.out_tracers.clear();
         self.out_events.clear();
+        self.raw_cameras_1p.clear();
         self.fighter_weapons.clear();
         self.fighter_lefts.clear();
         self.ids.clear();
@@ -750,6 +753,7 @@ impl SimBackend for MhSim {
         }
     }
     fn respawn(&mut self, id: u32, loc: [f32; 3], yaw: f32) {
+        self.raw_cameras_1p.remove(&id);
         let Some(&fi) = self.ids.get(id as usize) else { return };
         if let Some(s) = &mut self.sim {
             s.respawn(fi, FVector::new(loc[0], loc[1], loc[2]), yaw);
@@ -787,6 +791,44 @@ impl SimBackend for MhSim {
         let (start, end) = if f.alternate_mode { (g.second_trace_start, g.second_trace_end) } else { (g.trace_start, g.trace_end) };
         let array = |v: Option<FVector>| { let v = v.unwrap_or_default(); [v.x, v.y, v.z] };
         Some((array(start), array(end)))
+    }
+    fn current_weapon_trace(&self, id: u32) -> Option<CurrentWeaponTrace> {
+        let s = self.sim.as_ref()?;
+        let f = s.combat.fighters.get(*self.ids.get(id as usize)?)?;
+        f.weapon.as_ref()?;
+        let g = s.geo.weapons.get(&f.weapon_path)?;
+        let (start, end) = if f.alternate_mode {
+            (g.second_trace_start?, g.second_trace_end?)
+        } else {
+            (g.trace_start?, g.trace_end?)
+        };
+        let posed = s.posed.borrow();
+        let p = posed.get(&f.name)?;
+        let weapon_world = s.geo.weapon_world(p, g)?;
+        let array = |v: FVector| [v.x, v.y, v.z];
+        let start_ue_cm = array(weapon_world.apply(start));
+        let end_ue_cm = array(weapon_world.apply(end));
+        if !start_ue_cm.iter().chain(end_ue_cm.iter()).all(|v| v.is_finite()) { return None; }
+        Some(CurrentWeaponTrace { start_local_ue_cm: array(start), end_local_ue_cm: array(end), start_ue_cm, end_ue_cm, weapon_world, alternate_mode: f.alternate_mode, owner_equipment: f.right_actor })
+    }
+    fn first_person(&self, id: u32) -> Option<bool> {
+        let s = self.sim.as_ref()?;
+        Some(s.fanim.get(*self.ids.get(id as usize)?)?.first_person)
+    }
+    fn raw_camera_1p(&self, id: u32) -> Option<RawCamera1P> {
+        let sample = *self.raw_cameras_1p.get(&id)?;
+        (sample.tick == self.ticks() && sample.world_generation == self.world_generation()
+            && Some(sample.first_person) == self.first_person(id)).then_some(sample)
+    }
+    fn clear_raw_cameras_1p(&mut self) { self.raw_cameras_1p.clear(); }
+    fn publish_raw_camera_1p(&mut self, id: u32, sample: RawCamera1P) {
+        if sample.tick != self.ticks() || sample.world_generation != self.world_generation()
+            || Some(sample.first_person) != self.first_person(id)
+            || !sample.location_ue_cm.iter().chain(sample.forward_ue.iter()).all(|v| v.is_finite()) {
+            self.raw_cameras_1p.remove(&id);
+            return;
+        }
+        self.raw_cameras_1p.insert(id, sample);
     }
     fn trace_sockets(&self, id: u32) -> Option<([f32; 3], [f32; 3])> {
         let s = self.sim.as_ref()?;

@@ -91,6 +91,33 @@ impl FrameInput {
     }
 }
 
+/// Raw character camera fields reconstructed by the current player camera update. UE world cm,
+/// binary32. CameraLocation1P (+0xf18) excludes cosmetic location (+0xf24); forward is
+/// CameraRotation1P (+0xf30).Vector(). bIsFirstPerson (+0xf08) is distinct from IsViewTarget.
+/// This is a sampled runtime reconstruction, not an original-process memory read.
+#[derive(Clone, Copy, Debug, serde::Serialize)]
+pub struct RawCamera1P {
+    pub location_ue_cm: [f32; 3],
+    pub forward_ue: [f32; 3],
+    pub first_person: bool,
+    pub tick: u64,
+    pub world_generation: u64,
+}
+
+/// Current held-mesh GetTrace, independent of the cached attack tracer history. Unit-scale
+/// weapon transform in UE world cm; absent socket/pose/weapon is explicitly unsupported.
+#[derive(Clone, Copy, Debug)]
+pub struct CurrentWeaponTrace {
+    pub start_local_ue_cm: [f32; 3],
+    pub end_local_ue_cm: [f32; 3],
+    pub start_ue_cm: [f32; 3],
+    pub end_ue_cm: [f32; 3],
+    pub weapon_world: mordhau_core::ue::FTransform,
+    pub alternate_mode: bool,
+    /// Current right-hand equipment generation; absent means an attachment cannot be identified.
+    pub owner_equipment: Option<mordhau_core::combat::EquipmentId>,
+}
+
 /// What the runtime needs from a sim. The cores keep Rc-shared spec data, so the sim lives on the main thread (a Bevy
 /// non-send resource).
 #[allow(dead_code)] // combat / fighter_index / set_pose / weapon_world: the host API for mh-ui / mh-fx and weapon rendering
@@ -188,6 +215,12 @@ pub trait SimBackend: 'static {
     /// AAdvancedCharacter::bIsViewTarget: the local player camera targets this fighter in either perspective.
     /// `debug_override` labels the external fly1p observer's synthetic target in attack evidence.
     fn set_view_target(&mut self, _id: u32, _is_view_target: bool, _debug_override: bool) {}
+    /// Actual animation/perspective flag; None means this backend does not model it.
+    fn first_person(&self, _id: u32) -> Option<bool> { None }
+    /// Same-tick raw camera fields, populated after player_rig. Remote/unupdated cameras return None.
+    fn raw_camera_1p(&self, _id: u32) -> Option<RawCamera1P> { None }
+    fn clear_raw_cameras_1p(&mut self) {}
+    fn publish_raw_camera_1p(&mut self, _id: u32, _camera: RawCamera1P) {}
     /// respawn fighter `id` as a new character at a UE location / yaw (the combat test level's round restart)
     fn respawn(&mut self, _id: u32, _loc: [f32; 3], _yaw: f32) {}
     /// (first-person r3) AAdvancedCharacter::RequestSuicide -> ServerSuicide_Implementation rva=0x14a02a0 (allowed unless
@@ -217,6 +250,7 @@ pub trait SimBackend: 'static {
     /// GetTrace_Implementation 0x1629520 local normal/alternate mesh sockets for the current held weapon.
     /// Material updates transform these through their current component; motion OverrideTrace remains unsupported.
     fn weapon_trace_local(&self, _id: u32) -> Option<([f32; 3], [f32; 3])> { None }
+    fn current_weapon_trace(&self, _id: u32) -> Option<CurrentWeaponTrace> { None }
     /// Actual SampleTracers segments from every step since the host last consumed them.
     fn drain_tracers(&mut self) -> Vec<TracerSegment> { Vec::new() }
     /// UAttackMotion::TrailWeight of the fighter's current motion (0 without one); None = the sim does not model it

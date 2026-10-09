@@ -19,6 +19,7 @@ OWN_EMBEDDED_SOURCE = {
     "core/crates/mh-runtime/src/uepost_render.rs": {b"uepost.wgsl"},
 }
 EXCLUDED_DIRS = {"extract", "ghidra", "state", "data_gen", "sheets", "cache", "sdk", "vendor", "node_modules"}
+OWN_SOURCE_DIRS = {"tools/local-import/matrix-source/tools/sheets"}
 GAME_SUFFIXES = {".exe", ".dll", ".pak", ".pdb", ".uasset", ".uexp", ".ubulk", ".glb", ".gltf", ".wgsl", ".tsv", ".xlsx", ".png", ".jpg", ".ogg", ".wav", ".mp3", ".mp4", ".zip", ".7z"}
 SENSITIVE = re.compile(rb"(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)")
 
@@ -29,7 +30,7 @@ def errors_for(path: Path, relative: str) -> list[str]:
     if path.is_symlink() or getattr(st, "st_file_attributes", 0) & 0x400:
         return [f"Reparse/symlink input: {relative}"]
     parts = Path(relative).parts
-    if any(p.lower() in EXCLUDED_DIRS for p in parts):
+    if any(p.lower() in EXCLUDED_DIRS and Path(*parts[:i+1]).as_posix() not in OWN_SOURCE_DIRS for i, p in enumerate(parts)):
         errors.append(f"Private or generated directory: {relative}")
     suffix = path.suffix.lower()
     allowed = suffix in ALLOWED_SUFFIXES or relative in ALLOWED_JSON or relative in OWN_SHADER_SOURCE or relative in OWN_READER_SOURCE or relative == ".gitignore" or (relative.startswith("demo/") and suffix == ".txt")
@@ -68,7 +69,7 @@ def audit(root: Path, tracked_only: bool = False):
                 if p.is_symlink() or getattr(p.lstat(), "st_file_attributes", 0) & 0x400:
                     errors.append(f"Reparse/symlink directory: {p.relative_to(root).as_posix()}")
                     dirs.remove(name)
-                elif name.lower() in EXCLUDED_DIRS:
+                elif name.lower() in EXCLUDED_DIRS and (rel/name).as_posix() not in OWN_SOURCE_DIRS:
                     errors.append(f"Private or generated directory: {(rel/name).as_posix()}")
                     dirs.remove(name)
             paths.extend(Path(directory) / name for name in names if not name.endswith(".pyc"))

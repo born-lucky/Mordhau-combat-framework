@@ -245,6 +245,8 @@ pub fn on_was_blocked(w: &WeaponHitData, reason: i64, is_cancel: bool) -> Vec<Hi
     vec![HitCue { cue: w.was_blocked.clone(), params: vec![("Reason".into(), r as f64)], volume: 1.0, pitch: 1.0 }]
 }
 
+pub use mh_framework::presentation::{blocked_particle_point, BlockedCamera};
+
 /// The blood HitEffect class a damaged character plays: BloodHitEffect when the bone's armour tier < 2 or the victim is
 /// the view target, else BloodMetalHitEffect (AMordhauCharacter::OnTookDamage_Implementation rva=0x155be10, decomp
 /// AMordhauCharacter.cpp 5232-5240). true = the metal (armoured) effect.

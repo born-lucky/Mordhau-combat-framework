@@ -534,12 +534,13 @@ fn first_person_parts(
     mut q: Query<(Entity, &ViewPart, &mut Visibility, Has<bevy::light::NotShadowCaster>), Without<ShadowCapsule>>,
     mut caps: Query<(&ShadowCapsule, &mut Visibility), Without<ViewPart>>,
     sim: NonSend<crate::sim::Sim>,
+    custom: Option<Res<crate::custom_visuals::CustomVisuals>>,
 ) {
     let fp_of = pc.as_ref().filter(|p| !p.third_person && mode.as_deref().is_some_and(|m| *m == crate::camera::CamMode::Player || fp_fly.as_deref().is_some_and(|f| f.0))).map(|p| p.id);
     let dead: std::collections::HashSet<_> = sim.0.fighters().iter().filter(|v|v.health<=0.).map(|v|v.id).collect();
     for (e, vp, mut vis, no_cast) in q.iter_mut() {
         let fp = fp_of == Some(vp.fighter);
-        let show = match vp.view {
+        let show = !custom.as_deref().is_some_and(|c| c.enabled) && match vp.view {
             crate::loadout::View::Both => true,
             // UpdateMeshVisibility 0x14ddc50 selects the full FPDeadMesh for a dead first-person character.
             crate::loadout::View::Only3P => !fp || dead.contains(&vp.fighter),
@@ -592,7 +593,7 @@ pub fn spawn_pak_body(commands: &mut Commands, pb: &PakBody, root: Entity, mesh_
         for (m, mat) in ms {
             // 1P-only parts start hidden (3P is every non-local fighter's view); first_person_parts toggles them
             let vis = if *view == crate::loadout::View::Only1P { Visibility::Hidden } else { Visibility::Inherited };
-            let mut c = commands.spawn((Mesh3d(m.clone()), SkinnedMesh { inverse_bindposes: ibp.clone(), joints: js.clone() }, Transform::default(), ChildOf(mroot), ViewPart { fighter, view: *view }, vis,
+            let mut c = commands.spawn((Mesh3d(m.clone()), crate::custom_visuals::OriginalVisual, SkinnedMesh { inverse_bindposes: ibp.clone(), joints: js.clone() }, Transform::default(), ChildOf(mroot), ViewPart { fighter, view: *view }, vis,
                 // the posed arms of a 1P view lie outside the parts' bind-pose AABB (Bevy culls a skinned mesh by its
                 // unskinned bounds): never frustum-cull character parts (rendering glue, fidelity-audit r3)
                 bevy::camera::visibility::NoFrustumCulling));
@@ -606,6 +607,7 @@ pub fn spawn_pak_body(commands: &mut Commands, pb: &PakBody, root: Entity, mesh_
     for (m, mat) in master_parts {
         let mut c = commands.spawn((
             Mesh3d(m.clone()),
+            crate::custom_visuals::OriginalVisual,
             SkinnedMesh { inverse_bindposes: pb.ibp.clone(), joints: joints.clone() },
             Transform::default(),
             ChildOf(mroot),
@@ -869,7 +871,7 @@ fn held_weapons(
     mut images: ResMut<Assets<Image>>,
     mut tint: ResMut<Assets<crate::uetint::UeTintMaterial>>,
     mut stdm: ResMut<Assets<StandardMaterial>>,
-    defaults: Option<Res<crate::uetint::Defaults>>,
+    presentation: (Option<Res<crate::uetint::Defaults>>, Option<Res<crate::custom_visuals::CustomVisuals>>),
     sl: Res<crate::sim::SimLevel>,
     sel: Res<crate::loadout::Selected>,
     frames: Res<crate::sim::SimFrames>,
@@ -877,6 +879,8 @@ fn held_weapons(
     actors: Query<(&Fighter, &Transform), Without<crate::weapon::HeldWeapon>>,
     mut held: Query<(&crate::weapon::HeldWeapon, &mut Transform, &mut Visibility)>,
 ) {
+    // Tuple SystemParam keeps this existing presentation system within Bevy's function arity.
+    let (defaults, custom) = presentation;
     let views = sim.0.fighters();
     let mut have = vec![false; views.len()];
     let mut have_left = vec![false; views.len()];
@@ -933,14 +937,17 @@ fn held_weapons(
             cache.info.push(info);
             cache.by_weapon.insert(key.clone(), look);
         }
-        let Some(look) = cache.by_weapon.get(&key).cloned().flatten() else { continue };
+        let look = cache.by_weapon.get(&key).cloned().flatten();
+        // Custom training geometry needs the real held component, not decoded original artwork.
+        // Retain normal decoder behavior, but do not suppress a custom component on a look failure.
+        if look.is_none() && !custom.as_deref().is_some_and(|c| c.enabled) { continue; }
         let mut e = commands.spawn((crate::weapon::HeldWeapon { fighter: fid, left }, Name::new(format!("{} {fid}", if left { "LeftHand" } else { "Weapon" })), Transform::default(), Visibility::Hidden));
         if let Some(r) = lvl.root {
             e.insert(ChildOf(r));
         }
         let id = e.id();
-        for (m, mat) in &look.prims {
-            let mut c = commands.spawn((Mesh3d(m.clone()), Transform::default(), ChildOf(id)));
+        for (m, mat) in look.as_ref().into_iter().flat_map(|look| look.prims.iter()) {
+            let mut c = commands.spawn((Mesh3d(m.clone()), crate::custom_visuals::OriginalVisual, Transform::default(), ChildOf(id)));
             match mat {
                 crate::level::MatH::Std(h) => c.insert(MeshMaterial3d(h.clone())),
                 // the weapon's own material instance (UE: an MID per weapon) so its smear uniforms are its own

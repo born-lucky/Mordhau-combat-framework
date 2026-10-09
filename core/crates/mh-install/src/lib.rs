@@ -199,6 +199,7 @@ impl RuntimeInputs {
         std::env::set_var("MORDHAU_REPO", &self.local_data);
         std::env::set_var("MORDHAU_SPEC_DIR", &self.spec);
         std::env::set_var("MORDHAU_EXTRACT", &self.extract);
+        std::env::set_var("MH_SHADER_DIR", self.local_data.join("data_gen/shaders/particles"));
     }
 }
 

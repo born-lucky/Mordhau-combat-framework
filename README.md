@@ -24,6 +24,8 @@ mh-framework provides an entry point to the engine-neutral simulation and typed
 data APIs. The Bevy application supplies input, camera, rendering, and the combat
 lab. A new setup interface and health/stamina presentation are under development;
 the bars read live fighter values and bounds rather than introducing new rules.
+The fork enables authored training figures and generic weapons; see
+[presentation and current limitations](docs/PRESENTATION.md).
 
 Original-game parity is ongoing. This is not a claim of complete 1:1 behavior
 across every weapon, attack phase, effect, map, or multiplayer mode. The existing

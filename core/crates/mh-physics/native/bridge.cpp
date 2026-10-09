@@ -1,6 +1,7 @@
 // Thin C ABI over Mordhau's installed PhysX 3.4.0 DLLs. No UE objects or game memory are accessed.
-// The public API/extension headers come from the pinned external NVIDIA SDK (scripts/build_physx.py).
+// Licensed sources are acquired and adapted locally by tools/physics-build/build_bridge.py.
 #include <PxPhysicsAPI.h>
+#include "mh_installed_physx.h"
 #include <extensions/PxMassProperties.h>
 #include <extensions/PxD6Joint.h>
 #include <malloc.h>
@@ -12,7 +13,7 @@
 using namespace physx;
 
 // Original shipping PDB: wall-cooked-query-abi-{pdb,base-enums-pdb}.json.
-// These checks also compile in the guarded build using the unchanged reviewed SDK overlay.
+// These checks also compile in the guarded BSD-source compatibility build.
 static_assert(sizeof(PxActorShape)==16 && offsetof(PxActorShape,actor)==0 && offsetof(PxActorShape,shape)==8);
 static_assert(sizeof(PxQueryHit)==24 && offsetof(PxQueryHit,faceIndex)==16);
 static_assert(sizeof(PxLocationHit)==56 && offsetof(PxLocationHit,flags)==24);
@@ -108,7 +109,8 @@ static PxFilterFlags filter(PxFilterObjectAttributes, PxFilterData a, PxFilterOb
     return PxFilterFlag::eDEFAULT;
 }
 extern "C" __declspec(dllexport) const char* mh_px_error() { return error_text; }
-extern "C" __declspec(dllexport) unsigned mh_px_version() { return PX_PHYSICS_VERSION; }
+extern "C" __declspec(dllexport) unsigned mh_px_version() { return mh_installed_physx::version; }
+extern "C" __declspec(dllexport) const char* mh_px_licensed_source() { return mh_installed_physx::licensed_source; }
 extern "C" __declspec(dllexport) unsigned mh_px_abi_revision() { return 0x20261008; }
 extern "C" __declspec(dllexport) unsigned mh_px_validation() {
 #if defined(MH_PHYSX_VALIDATION)
@@ -128,15 +130,15 @@ extern "C" __declspec(dllexport) Scene* mh_px_scene(float gravity_z, float frict
     if (!foundation) foundation = PxCreateFoundation(PX_FOUNDATION_VERSION, allocator, errors);
     if (!foundation) return nullptr;
     PxTolerancesScale scale; scale.length = scale_length; scale.mass = 1000; scale.speed = scale_speed;
-    if (!physics) physics = PxCreateBasePhysics(PX_PHYSICS_VERSION, *foundation, scale, false, nullptr);
+    if (!physics) physics = PxCreateBasePhysics(mh_installed_physx::version, *foundation, scale, false, nullptr);
     if (!physics) return nullptr;
     // FPhysXPlatformModule::GetPhysXCooking RVA0x2e19580: original profile,
-    // in addition to the PDB-matched descriptor layout supplied by build_physx.py.
+    // in addition to the installed descriptor layout supplied by the local BSD adapter.
     PxCookingParams params(scale);
     params.meshPreprocessParams = PxMeshPreprocessingFlag::eWELD_VERTICES;
     params.meshWeldTolerance = .1f;
     params.midphaseDesc.setToDefault(PxMeshMidPhase::eBVH33);
-    if (!cooking) cooking = PxCreateCooking(PX_PHYSICS_VERSION, *foundation, params);
+    if (!cooking) cooking = PxCreateCooking(mh_installed_physx::version, *foundation, params);
     if (!cooking) return nullptr;
     Scene* s = new Scene;
     PxSceneDesc desc(scale); desc.gravity = PxVec3(0,0,gravity_z);

@@ -161,7 +161,7 @@ impl Plugin for UiPlugin {
 }
 
 #[derive(Component)]
-struct UiRoot;
+pub struct UiRoot;
 
 #[derive(Component)]
 struct UiItem;

@@ -23,6 +23,8 @@ use std::collections::HashMap;
 
 #[derive(Resource, Default)]
 pub struct BridgeState {
+    pending_parry_fx:Vec<PendingParryFx>,
+    pub parry_fx_notes:Vec<serde_json::Value>,
     pub fx: Option<mh_fx::CombatFx>,
     pub sounds: HashMap<String, mh_audio::WeaponSounds>,
     /// weapon Blueprint -> its OnHit / OnBlocked / OnWasBlocked cue fields (onhit.rs)
@@ -46,12 +48,36 @@ pub struct BridgeState {
     pub map_volumes: usize,
 }
 
+impl BridgeState {
+    /// Diagnostics retain the newest bounded window even within one large event batch.
+    fn record_parry_fx_note(&mut self, note: serde_json::Value) {
+        const LIMIT: usize = 128;
+        if self.parry_fx_notes.len() >= LIMIT {
+            let discard = self.parry_fx_notes.len() - LIMIT + 1;
+            self.parry_fx_notes.drain(..discard);
+        }
+        self.parry_fx_notes.push(note);
+    }
+}
+
+/// Preserve the defender trace/equipment at the event, then wait only until this
+/// frame's raw native camera is published after transform propagation.
+struct PendingParryFx {
+    system:String,
+    defender:u32,
+    tick:u64,
+    world_generation:u64,
+    trace:crate::sim::CurrentWeaponTrace,
+}
+
 pub struct BridgePlugin;
 
 impl Plugin for BridgePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<BridgeState>().init_resource::<crate::weapon::blood::WeaponBlood>().init_resource::<TrailState>().init_resource::<crate::shake::CameraShakes>().insert_resource(crate::usersettings::UserSettings::load()).add_systems(Update, (prewarm_combat, forward_events, vitals, listener, map_ambience))
-            .add_systems(PostUpdate, crate::weapon::blood::update);
+            .add_systems(PostUpdate, crate::weapon::blood::update)
+            .add_systems(PostUpdate,parry_effects.after(crate::camera::CameraSet::PlayerRig)
+                .before(mh_fx::FxSet::Update));
     }
 }
 
@@ -317,6 +343,21 @@ pub fn forward_events(
         let blood_off = kind == "hit" && us.as_deref().is_some_and(|u| !u.show_blood());
         let systems: Vec<String> = st.fx.as_ref().filter(|_| !blood_off).map(|f| f.for_event_all(&ev, armoured).into_iter().map(String::from).collect()).unwrap_or_default();
         for sys in systems {
+            if kind=="parry"||kind=="active_parry" {
+                // Native OnRep_NetBlock0x155a4e0 suppresses presentation while World.TimeSeconds<7.
+                // This gate belongs to NetBlock; nonparry effects retain their existing dispatch here.
+                let ready=sim.0.combat().is_some_and(|w|w.now as f32>=7.0);
+                let defender=name_id("victim");
+                let trace=defender.and_then(|id|sim.0.current_weapon_trace(id));
+                match (ready,defender,trace) {
+                    (true,Some(defender),Some(trace))if trace.owner_equipment.is_some()=> {
+                        st.pending_parry_fx.push(PendingParryFx {system:sys,defender,trace,
+                            tick:sim.0.ticks(),world_generation:sim.0.world_generation()});
+                    }
+                    _=>st.record_parry_fx_note(serde_json::json!({"stage":"queued","status":if !ready{"native_startup_gate"}else{"missing_defender_trace_or_equipment"},"defender":defender,"tick":sim.0.ticks()})),
+                }
+                continue;
+            }
             // no point on the event (was_blocked carries none yet: FBlockResult.Point UNCONFIRMED in mh-sim) -> skip
             if pos == Vec3::ZERO {
                 continue;
@@ -456,6 +497,41 @@ fn listener(cam: Query<&GlobalTransform, With<crate::camera::FlyCam>>, mut l: Re
         // position, velocity and orientation (mh-audio spatialization needs forward / right; rust-assets r8)
         l.follow(g, time.delta_secs());
     }
+}
+
+/// Only parry BlockParticles wait for the camera fields; all sounds/other effect
+/// requests remain at their existing event dispatch. Missing/stale/remote camera
+/// data is diagnosed explicitly, never replaced with the attacker impact point.
+fn parry_effects(
+    sim:NonSend<Sim>,
+    mut st:ResMut<BridgeState>,
+    held:Query<(Entity,&crate::weapon::HeldWeapon,&GlobalTransform)>,
+    mut fx:MessageWriter<mh_fx::FxAttachedRequest>,
+) {
+    use mordhau_core::ue::FVector;
+    let vec=|a:[f32;3]|FVector::new(a[0],a[1],a[2]);
+    let pending=std::mem::take(&mut st.pending_parry_fx);
+    for p in pending {
+        let current=sim.0.current_weapon_trace(p.defender);
+        let camera=sim.0.raw_camera_1p(p.defender);
+        let parent=held.iter().find(|(_,h,_)|h.fighter==p.defender&&!h.left);
+        let valid=p.tick==sim.0.ticks()&&p.world_generation==sim.0.world_generation()
+            &&current.is_some_and(|t|t.owner_equipment==p.trace.owner_equipment);
+        let note=|status:&str|serde_json::json!({"stage":"camera_ready","status":status,"defender":p.defender,"tick":p.tick,"world_generation":p.world_generation,"equipment":p.trace.owner_equipment.map(|a|serde_json::json!({"slot":a.slot,"generation":a.generation}))});
+        if !valid {st.record_parry_fx_note(note("stale_world_tick_or_equipment"));continue;}
+        let (Some(camera),Some((parent,_,world)))=(camera,parent)else{st.record_parry_fx_note(note("missing_same_tick_camera_or_component"));continue;};
+        let Some(point)=crate::onhit::blocked_particle_point(crate::onhit::BR_PARRY,
+            vec(p.trace.start_ue_cm),vec(p.trace.end_ue_cm),Some(crate::onhit::BlockedCamera {
+                location:vec(camera.location_ue_cm),forward:vec(camera.forward_ue),first_person:camera.first_person,
+            }))else{st.record_parry_fx_note(note("unavailable_native_point"));continue;};
+        let pos=Vec3::new(point.x,point.z,point.y)*0.01;
+        let mut observation=note("attached_request");
+        if let Some(o)=observation.as_object_mut(){o.insert("point_ue_cm".into(),serde_json::json!([point.x,point.y,point.z]));o.insert("raw_camera".into(),serde_json::json!(camera));o.insert("trace_start_ue_cm".into(),serde_json::json!(p.trace.start_ue_cm));o.insert("trace_end_ue_cm".into(),serde_json::json!(p.trace.end_ue_cm));}
+        st.record_parry_fx_note(observation);
+        fx.write(mh_fx::FxAttachedRequest {effect:mh_fx::FxRequest {system:p.system,pos,dir:Vec3::X},parent,birth_parent:*world});
+        st.fx_sent+=1;
+    }
+    if st.parry_fx_notes.len()>128{let n=st.parry_fx_notes.len()-128;st.parry_fx_notes.drain(..n);}
 }
 
 /// a newly loaded map: its placed AmbientSound / AudioComponents and particle systems start (rust-assets r8)

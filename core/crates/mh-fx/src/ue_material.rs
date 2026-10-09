@@ -421,7 +421,10 @@ pub struct Translated {
 
 /// the generated shaders' directory: $MH_SHADER_DIR, else <repo>/data_gen/shaders/particles
 pub fn shader_dir() -> std::path::PathBuf {
-    std::env::var_os("MH_SHADER_DIR").map(Into::into).unwrap_or_else(|| std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../data_gen/shaders/particles"))
+    std::env::var_os("MH_SHADER_DIR").map(Into::into)
+        .or_else(|| std::env::var_os("MORDHAU_LOCAL_DATA").or_else(|| std::env::var_os("MORDHAU_REPO"))
+            .map(|root| std::path::PathBuf::from(root).join("data_gen/shaders/particles")))
+        .unwrap_or_else(|| std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../data_gen/shaders/particles"))
 }
 
 pub fn load_translated(master_pkg: &str) -> Option<Translated> {

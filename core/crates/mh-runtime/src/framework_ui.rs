@@ -7,6 +7,9 @@ use crate::input::PlayerControl;
 struct LabStatus;
 
 #[derive(Component)]
+struct ControlLegend;
+
+#[derive(Component)]
 struct VitalsPanel;
 
 #[derive(Component, Clone, Copy)]
@@ -21,7 +24,10 @@ struct VitalLabel(Vital);
 pub struct FrameworkUiPlugin;
 impl Plugin for FrameworkUiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup).add_systems(Update, update);
+        app.add_systems(Startup, setup)
+            .add_systems(Update, update.after(crate::sim::tick_sim_frame))
+            .add_systems(PostUpdate, original_hud_visibility
+                .before(bevy::camera::visibility::VisibilitySystems::VisibilityPropagate));
     }
 }
 
@@ -44,6 +50,13 @@ fn setup(mut commands: Commands) {
         },
         BackgroundColor(Color::srgba(0.078, 0.165, 0.224, 0.85)),
     ));
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute, left: Val::Percent(50.0), top: Val::Percent(50.0),
+            width: Val::Px(3.0), height: Val::Px(3.0), ..default()
+        },
+        BackgroundColor(Color::srgb(0.92, 0.91, 0.86)),
+    ));
     commands.spawn(label(
         "Mordhau Combat Framework",
         22.0,
@@ -59,12 +72,12 @@ fn setup(mut commands: Commands) {
             Color::srgb(0.655, 0.765, 0.804),
         ),
     ));
-    commands.spawn(label(
-        "Strike: left click    Stab: wheel up    Parry: right click    Feint: Q    Grip: R\nView: P    Tracers: F7    Parry geometry: F8    Combat tools: F9",
+    commands.spawn((ControlLegend, label(
+        "Loading saved controls\nTracers: F7    Parry geometry: F8    Combat tools: F9",
         13.0,
         Node { position_type: PositionType::Absolute, bottom: Val::Px(16.0), left: Val::Px(24.0), ..default() },
         Color::srgb(0.922, 0.914, 0.859),
-    ));
+    )));
     commands.spawn((
         VitalsPanel,
         Node {
@@ -94,10 +107,46 @@ fn setup(mut commands: Commands) {
     });
 }
 
+/// Keep original menu behavior available while substituting our match presentation.
+/// Hiding the draw roots does not remove the VM or alter HUD/gameplay event processing.
+fn original_hud_visibility(
+    player: Option<Res<PlayerControl>>, screen: Res<mh_ui::Screen>,
+    real: Option<NonSend<mh_ui::real::Rt>>,
+    mut roots: Query<&mut Visibility, Or<(With<mh_ui::real::RtRoot>, With<mh_ui::UiRoot>)>>,
+) {
+    let menu = menu_visible(player.as_deref(), &screen, real.as_deref());
+    for mut root in &mut roots {
+        *root = if menu { Visibility::Inherited } else { Visibility::Hidden };
+    }
+}
+
+fn menu_visible(player: Option<&PlayerControl>, screen: &mh_ui::Screen, real: Option<&mh_ui::real::Rt>) -> bool {
+    *screen == mh_ui::Screen::MainMenu
+        || player.is_some_and(|p| p.menu_open)
+        || real.is_some_and(|r| r.ui.main_menu_visible())
+}
+
+fn controls(player: Option<&PlayerControl>) -> String {
+    let Some(player) = player else { return "Loading saved controls".into() };
+    let key = |key: &crate::input::Key| match key {
+        crate::input::Key::K(k) => format!("{k:?}").trim_start_matches("Key").to_string(),
+        crate::input::Key::M(m) => format!("Mouse {m:?}"),
+        crate::input::Key::WheelUp => "Wheel up".into(),
+        crate::input::Key::WheelDown => "Wheel down".into(),
+    };
+    let bindings: Vec<_> = [("Strike", "Strike"), ("Stab", "Stab"), ("Parry", "Parry"),
+        ("Feint", "Feint"), ("Grip", "Weapon Mode / Reload")].into_iter().map(|(label, action)| {
+            let keys: Vec<_> = player.actions.get(action).into_iter().flatten().map(key).collect();
+            format!("{label}: {}", if keys.is_empty() { "unbound".into() } else { keys.join(" / ") })
+        }).collect();
+    format!("{}\nTracers: F7    Parry geometry: F8    Combat tools: F9", bindings.join("    "))
+}
+
 fn update(
     sim: NonSend<Sim>, player: Option<Res<PlayerControl>>,
-    mut text: Query<&mut Text, (With<LabStatus>, Without<VitalLabel>)>,
-    mut labels: Query<(&VitalLabel, &mut Text), Without<LabStatus>>,
+    screen: Res<mh_ui::Screen>, real: Option<NonSend<mh_ui::real::Rt>>,
+    mut text: Query<(&mut Text, Has<LabStatus>), (Or<(With<LabStatus>, With<ControlLegend>)>, Without<VitalLabel>)>,
+    mut labels: Query<(&VitalLabel, &mut Text), (Without<LabStatus>, Without<ControlLegend>)>,
     mut fills: Query<(&VitalFill, &mut Node)>,
     mut panels: Query<&mut Visibility, With<VitalsPanel>>,
 ) {
@@ -110,14 +159,16 @@ fn update(
         ),
         None => "Waiting for the combat world".into(),
     };
-    for mut t in &mut text {
-        if t.0 != status { t.0.clone_from(&status); }
+    let legend = controls(player.as_deref());
+    for (mut t, is_status) in &mut text {
+        let next = if is_status { &status } else { &legend };
+        if t.0 != *next { t.0.clone_from(next); }
     }
     // Read each fighter's live stat bounds, including modifications. The UI never
     // changes regeneration, costs, damage, or timings and never assumes a 100 cap.
     let local = local_id.and_then(|id| sim.0.combat().zip(sim.0.fighter_index(id)))
         .and_then(|(world, fi)| world.fighters.get(fi));
-    let show = local.is_some() && !player.as_ref().is_some_and(|p| p.menu_open);
+    let show = local.is_some() && !menu_visible(player.as_deref(), &screen, real.as_deref());
     for mut visible in &mut panels { *visible = if show { Visibility::Inherited } else { Visibility::Hidden }; }
     let Some(fighter) = local else { return };
     let values = |kind| match kind {

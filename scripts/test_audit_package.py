@@ -30,6 +30,12 @@ class AuditTests(unittest.TestCase):
             errors,_=audit(Path(d))
             self.assertTrue(errors)
 
+    def test_reviewed_sheet_reader_source_does_not_allow_spreadsheets(self):
+        prefix="tools/local-import/matrix-source/tools/sheets/"
+        self.assertFalse(self.check_blob(prefix+"reader.py",b"def read(): pass"))
+        self.assertTrue(self.check_blob(prefix+"game.xlsx",b"original"))
+        self.assertTrue(self.check_blob("other/sheets/reader.py",b"def read(): pass"))
+
     def test_normal_source_accepted(self):
         self.assertFalse(self.check_blob("src/main.rs",b"fn main() {}"))
 

@@ -23,6 +23,10 @@ pub struct CamRequest(pub Option<[f32; 5]>);
 
 pub struct CameraPlugin;
 
+/// Consumers of raw camera fields must run after this set, not before the camera's pose update.
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CameraSet { PlayerRig }
+
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CamRequest>()
@@ -35,7 +39,45 @@ impl Plugin for CameraPlugin {
             // GlobalTransforms are only refreshed by TransformSystems::Propagate (PostUpdate); reading them in Update gave
             // last frame's skeleton, so while turning the camera trailed the 1P arms by a frame (user 22:01: "when you
             // move the camera ... the arms and the sword perfectly track with the camera" in the real game)
-            .add_systems(PostUpdate, player_rig.after(bevy::transform::TransformSystems::Propagate));
+            .add_systems(PostUpdate, (player_rig, publish_other_cameras).chain()
+                .in_set(CameraSet::PlayerRig).after(bevy::transform::TransformSystems::Propagate));
+    }
+}
+
+/// LateTick 0x154d190 updates the raw first-person camera of living characters even
+/// when they are not the view target. The non-first-person (+0xf08=false) branch
+/// does not apply lookup collision or cosmetic offsets. Reconstruct it from the
+/// current drawn pose, using the same camera component defaults as player_rig.
+/// Missing bones/unsupported perspectives have no synthetic actor-position fallback.
+fn publish_other_cameras(
+    mut sim: NonSendMut<crate::sim::Sim>, rig: Res<Rig>,
+    bodies: Query<(&crate::fighter::BodyJoints, &GlobalTransform, &ChildOf)>,
+    fighters: Query<&crate::fighter::Fighter>, joints: Query<&GlobalTransform>,
+) {
+    let views = sim.0.fighters();
+    let rq = |p: f32, y: f32, r: f32| ue::rot_quat(Some(&json!({"Pitch": p, "Yaw": y, "Roll": r})));
+    let ue_v = |v: Vec3| [v.x * 100.0, v.z * 100.0, v.y * 100.0];
+    let tick = sim.0.ticks();
+    let world_generation = sim.0.world_generation();
+    for (body, mesh, parent) in &bodies {
+        let Ok(fighter) = fighters.get(parent.parent()) else { continue };
+        if sim.0.raw_camera_1p(fighter.id).is_some() || sim.0.first_person(fighter.id) != Some(false) { continue; }
+        let Some(view) = views.iter().find(|v| v.id == fighter.id && v.health > 0.0) else { continue };
+        let bone = |name: &str| body.names.iter().position(|n| n.eq_ignore_ascii_case(name))
+            .and_then(|i| body.joints.get(i)).and_then(|e| joints.get(*e).ok());
+        let (Some(position), Some(spine)) = (bone("Position"), bone("Spine1")) else { continue };
+        let pq = to_ue_q(position.compute_transform().rotation);
+        let rot = qmul(qmul(pq, rq(0.0, 0.0, -(view.look_up + rig.fp_lookup_offset))), rq(90.0, 0.0, -90.0));
+        let scale_z = mesh.compute_transform().scale.y;
+        if !scale_z.is_finite() || scale_z <= 0.0 { continue; }
+        let loc = spine.translation() + Vec3::from(ue::xf(None, rot, None).matrix3
+            * bevy::math::Vec3A::new(0.0, 41.625 * scale_z, 0.0)) * 0.01;
+        let angles = mordhau_core::combat::geometry::quat_rotator(mordhau_core::ue::FQuat::new(rot[0], rot[1], rot[2], rot[3]));
+        let forward = mordhau_core::ue::rotator_vector(angles.0, angles.1);
+        sim.0.publish_raw_camera_1p(fighter.id, crate::sim::RawCamera1P {
+            location_ue_cm: ue_v(loc), forward_ue: [forward.x, forward.y, forward.z],
+            first_person: false, tick, world_generation,
+        });
     }
 }
 
@@ -297,6 +339,8 @@ pub fn player_rig(
     mut speed_fov: Local<f32>,
     held: Query<(&crate::weapon::HeldWeapon, &GlobalTransform), Without<FlyCam>>,
 ) {
+    // Never expose a preceding-frame/local-player sample as a remote or current camera.
+    sim.0.clear_raw_cameras_1p();
     if *mode != CamMode::Player {
         return;
     }
@@ -378,6 +422,19 @@ pub fn player_rig(
             }
             st.look_up_collision_offset = look_up_collision_step(st.look_up_collision_offset, pitch, hit, time.delta_secs());
             let base = loc_at(pitch + st.look_up_collision_offset);
+            if let Some(first_person) = sim.0.first_person(pc.id) {
+                // Native UpdateFirstPersonCamera stores base location separately from cosmetic. Its
+                // bIsFirstPerson branch applies lookup collision only in FP; rotation remains at L.
+                let raw_loc = if first_person { base } else { loc_at(pitch) };
+                let qr = mordhau_core::combat::geometry::quat_rotator(mordhau_core::ue::FQuat::new(r[0], r[1], r[2], r[3]));
+                let forward = mordhau_core::ue::rotator_vector(qr.0, qr.1);
+                let tick = sim.0.ticks();
+                let world_generation = sim.0.world_generation();
+                sim.0.publish_raw_camera_1p(pc.id, crate::sim::RawCamera1P {
+                    location_ue_cm: ue_v(raw_loc), forward_ue: [forward.x, forward.y, forward.z],
+                    first_person, tick, world_generation,
+                });
+            }
             st.camera_collision_location_offset = ue_v(base - loc_at(pitch));
             let p = base + cos - Vec3::Y * down * 0.01;
             st.fp_view = Some([p.x * 100.0, p.z * 100.0, p.y * 100.0, fwd.x, fwd.z, fwd.y, pq[0], pq[1], pq[2], pq[3]]);

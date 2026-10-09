@@ -11,6 +11,7 @@
 //! (armour hits), the Blueprints' blood splash; `for_event` maps mh-sim drain() events onto them.
 
 pub mod map_fx;
+mod attachment;
 pub mod material;
 pub mod sim;
 pub mod trail;
@@ -33,6 +34,18 @@ pub struct FxRequest {
     pub pos: Vec3,
     pub dir: Vec3,
 }
+
+/// Attach an emitter at its supplied world pose to an actual held component.
+/// The birth parent transform matches the defender GetTrace sample; no collision endpoint substitution.
+#[derive(Message,Clone,Debug)]
+pub struct FxAttachedRequest {
+    pub effect: FxRequest,
+    pub parent: Entity,
+    pub birth_parent: GlobalTransform,
+}
+
+#[derive(SystemSet,Debug,Clone,Copy,PartialEq,Eq,Hash)]
+pub enum FxSet { Update }
 
 /// read a particle system and build its emitters' materials (textures, translated shaders) ahead of its first
 /// FxRequest, so the first hit effect of a fight does not stall its frame (first-person r1 smoothness; loading glue)
@@ -66,6 +79,7 @@ impl Plugin for FxPlugin {
             .add_plugins(MaterialPlugin::<UeParticleMaterial>::default())
             .init_resource::<UeAmbient>()
             .add_message::<FxRequest>()
+            .add_message::<FxAttachedRequest>()
             .add_message::<FxPrewarm>()
             .add_message::<trail::TrailEvent>()
             .init_resource::<TrailState>()
@@ -75,7 +89,13 @@ impl Plugin for FxPlugin {
                 material::install(&mut sh);
                 ue_material::install(&mut sh);
             })
-            .add_systems(Startup, setup).add_systems(Update, (depth_prepass, map_effects, prewarm, start, step, trails).chain());
+            .add_systems(Startup, setup)
+            // Preserve one simulation step/clock and the existing chain order, but run after this frame's
+            // propagated component poses and native player camera fields. All effects still precede extraction.
+            .add_systems(PostUpdate, (depth_prepass,map_effects,prewarm,start,step,trails).chain()
+                .in_set(FxSet::Update).after(bevy::transform::TransformSystems::Propagate)
+                .before(bevy::camera::visibility::VisibilitySystems::CalculateBounds)
+                .before(bevy::camera::visibility::VisibilitySystems::VisibilityPropagate));
     }
 }
 
@@ -281,6 +301,7 @@ struct Live {
     sim: SystemSim,
     /// per emitter: the mesh entity and handle
     meshes: Vec<Option<(Entity, Handle<Mesh>)>>,
+    attachment: Option<attachment::ComponentAttachment>,
 }
 
 /// systems, materials and textures (NonSend: mh-pak Reader)
@@ -296,6 +317,31 @@ pub struct FxState {
     stand_ins: Option<[Handle<Image>; 4]>,
     live: Vec<Live>,
     seed: u32,
+}
+
+impl FxState {
+    /// Read-only observed cache decisions; loaded shader source is not GPU pipeline acceptance.
+    pub fn diagnostics(&self, umats: Option<&Assets<UeParticleMaterial>>) -> serde_json::Value {
+        let mut materials: Vec<_> = self.materials.iter().map(|(package, material)| {
+            let variant = match material { Some(FxMat::Ue(_)) => "translated", Some(FxMat::Ported(_)) => "ported", None => "not_drawn" };
+            let master = match material {
+                Some(FxMat::Ue(handle)) => umats.and_then(|a|a.get(handle)).and_then(|m|
+                    self.shaders.iter().find(|(_,v)|v.as_ref().is_some_and(|(h,_)|*h==m.shader)).map(|(p,_)|p.clone())),
+                _ => mh_assets::material::Resolver::new(&self.rd, &self.src).params(package).map(|p|p.master_package),
+            };
+            let source_loaded = master.as_ref().and_then(|m|self.shaders.get(m)).map(|v|v.is_some());
+            serde_json::json!({"package":package,"variant":variant,"master":master,"translated_source_loaded":source_loaded})
+        }).collect();
+        materials.sort_by(|a,b|a["package"].as_str().cmp(&b["package"].as_str()));
+        let mut shaders: Vec<_> = self.shaders.iter().map(|(master,source)|
+            serde_json::json!({"master":master,"source_loaded":source.is_some()})).collect();
+        shaders.sort_by(|a,b|a["master"].as_str().cmp(&b["master"].as_str()));
+        let attached: Vec<_> = self.live.iter().filter_map(|live|live.attachment.map(|a|
+            serde_json::json!({"parent":format!("{:?}",a.parent),"origin_ue_cm":live.sim.origin,
+                "basis_ue":live.sim.basis,"alive":live.sim.alive()}))).collect();
+        serde_json::json!({"shader_dir":ue_material::shader_dir(),"materials":materials,"shader_cache":shaders,
+            "attached_emitters":attached,"scope":"Observed source/cache/selected material handles; GPU compilation and visual acceptance require logs and rendered frames"})
+    }
 }
 
 fn setup(world: &mut World) {
@@ -564,9 +610,10 @@ fn prewarm(
     }
 }
 
-fn start(st: Option<NonSendMut<FxState>>, mut reqs: MessageReader<FxRequest>, mut stats: ResMut<FxStats>) {
+fn start(st: Option<NonSendMut<FxState>>, mut reqs: MessageReader<FxRequest>, mut attached:MessageReader<FxAttachedRequest>, mut stats: ResMut<FxStats>) {
     let Some(mut st) = st else { return };
-    for r in reqs.read() {
+    let requests=reqs.read().cloned().map(|r|(r,None)).chain(attached.read().map(|a|(a.effect.clone(),Some((a.parent,a.birth_parent)))));
+    for (r,parent)in requests {
         let ps = if let Some(p) = st.systems.get(&r.system) {
             p.clone()
         } else {
@@ -580,6 +627,11 @@ fn start(st: Option<NonSendMut<FxState>>, mut reqs: MessageReader<FxRequest>, mu
             }
             continue;
         };
+        if parent.is_some()&&!attachment::world_space_only(&ps) {
+            let note=format!("{}: attached local-space emitter unsupported",r.system);
+            if !stats.unsupported_modules.contains(&note){stats.unsupported_modules.push(note);}
+            continue;
+        }
         st.seed = st.seed.wrapping_mul(747796405).wrapping_add(2891336453);
         let d = r.dir.normalize_or_zero();
         let sim = SystemSim::new(&ps, to_ue(r.pos), [d.x, d.z, d.y], st.seed);
@@ -590,7 +642,8 @@ fn start(st: Option<NonSendMut<FxState>>, mut reqs: MessageReader<FxRequest>, mu
         }
         stats.started.push(r.system.clone());
         let n = sim.emitters.len();
-        st.live.push(Live { sim, meshes: vec![None; n] });
+        let attachment=parent.map(|(entity,world)|attachment::ComponentAttachment::keep_world(entity,world.affine(),&sim));
+        st.live.push(Live { sim, meshes: vec![None; n],attachment });
     }
 }
 
@@ -610,6 +663,7 @@ fn step(
     ground: Res<FxGround>,
     mut images: ResMut<Assets<Image>>,
     mut stats: ResMut<FxStats>,
+    parents:Query<&GlobalTransform>,
 ) {
     let Some(mut st) = st else { return };
     let dt = time.delta_secs().min(0.1);
@@ -641,8 +695,17 @@ fn step(
         Vec3::new(c.x, c.z, c.y) * 100.0
     });
     let to_ue = |v: Vec3| Vec3::new(v.x, v.z, v.y);
+    // A missing parent retires this host attachment; exact native destruction/pooling order remains unverified.
+    st.live.retain(|live| {
+        let lost=live.attachment.is_some_and(|a|parents.get(a.parent).is_err());
+        if lost{for (e,_)in live.meshes.iter().flatten(){commands.entity(*e).despawn();}}
+        !lost
+    });
     let mut total = 0;
     for li in 0..st.live.len() {
+        if let Some(a)=st.live[li].attachment {
+            if let Ok(parent)=parents.get(a.parent){a.refresh(parent.affine(),&mut st.live[li].sim);}
+        }
         st.live[li].sim.ground_z = ground.0.map(|y| y * 100.0);
         st.live[li].sim.step(dt);
         for ei in 0..st.live[li].sim.emitters.len() {
@@ -754,6 +817,9 @@ fn step(
                         commands.entity(ent).insert(vis);
                     } else {
                         let h = meshes.add(mesh);
+                        // Native FParticleEmitterInstance::UpdateBoundingBox0x329e830 refreshes bounds
+                        // every tick. Bevy calculate_bounds only visits entities WITHOUT Aabb.
+                        commands.entity(ent).remove::<bevy::camera::primitives::Aabb>();
                         commands.entity(ent).insert((Mesh3d(h.clone()), vis));
                         live.meshes[ei] = Some((ent, h));
                     }
