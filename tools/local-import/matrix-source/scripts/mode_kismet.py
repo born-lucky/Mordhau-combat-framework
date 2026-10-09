@@ -23,8 +23,8 @@ import pp  # noqa: E402
 from kis import K  # noqa: E402
 from pkg import Pkg  # noqa: E402
 
-RAW = os.path.join(R, 'extract', 'raw')
-OUT = os.path.join(R, 'godot', 'data_gen', 'mode', 'mode_kismet.json')
+RAW = os.environ.get('MORDHAU_MODE_RAW', os.path.join(R, 'extract', 'raw'))
+OUT = os.environ.get('MORDHAU_MODE_OUT', os.path.join(R, 'godot', 'data_gen', 'mode', 'mode_kismet.json'))
 GM = 'Mordhau/Content/Mordhau/Blueprints/GameModes/'
 PKGS = {
     'DuelGameMode': GM + 'Duel/BP_DuelGameMode',
@@ -97,6 +97,8 @@ def _script(pkg, e):
 def functions(path):
     ua, ue = os.path.join(RAW, path + '.uasset'), os.path.join(RAW, path + '.uexp')
     if not (os.path.exists(ua) and os.path.exists(ue)):
+        if os.environ.get('MORDHAU_MODE_REQUIRE_RAW') == '1':
+            raise RuntimeError('Required locally read original package bytes missing: ' + path)
         subprocess.run(['sh', os.path.join(R, 'scripts', 'mdx.sh'), 'raw', RAW, path + '.uasset', path + '.uexp'],
                        check=True)
     p = Pkg(ua, ue)
@@ -420,7 +422,8 @@ def conv(t, s):
 
 
 def main():
-    assets()
+    if os.environ.get('MORDHAU_MODE_CONSTANTS_ONLY') != '1':
+        assets()
     fns = {k: functions(v) for k, v in PKGS.items()}
     out = {}
     for key, (pk, fn, rx, ty, nth) in SPEC.items():

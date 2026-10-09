@@ -31,4 +31,23 @@ class Tests(unittest.TestCase):
   d=m.Layouts(CV,Tpi())
   with self.assertRaises(ValueError):d.decode('UOuter',bytes(8),{})
   with self.assertRaises(ValueError):d.layout('Missing')
+ def test_opaque_text_name_omitted_but_required_empty_value_wrapper_kept(self):
+  class OpaqueTpi:
+   complete={'UOpaqueFixture':100,'FText':101,'FName':102,'FPerspective':103}
+   def udt(self,ti):return None,{100:'UOpaqueFixture',101:'FText',102:'FName',103:'FPerspective'}[ti]
+  class OpaqueTypes:
+   def __init__(self,t):pass
+   def decl(self,ti):return {1:'FText',2:'FName',3:'FPerspective'}[ti]
+   def size(self,ti):return 8
+   def layout(self,ti):
+    if ti==100:return dict(size=24,bases=[],members=[dict(name='EquipmentName',off=0,ti=1),dict(name='BoneName',off=8,ti=2),dict(name='RequiredWrapper',off=16,ti=3)])
+    return dict(size=8,bases=[],members=[])
+  class OpaqueCV:
+   Types=OpaqueTypes
+   @staticmethod
+   def bitinfo(t,ti):return None
+  layouts=m.Layouts(OpaqueCV,OpaqueTpi())
+  self.assertEqual(layouts.decode('UOpaqueFixture',bytes(24),{}),{'RequiredWrapper':{}})
+  self.assertEqual([(v['field'],v['type'],v['object_offset']) for v in layouts.skipped_fields], [('EquipmentName','FText',0),('BoneName','FName',8)])
+  self.assertTrue(all('Opaque runtime' in v['reason'] for v in layouts.skipped_fields))
 if __name__=='__main__':unittest.main()

@@ -36,6 +36,9 @@ class Layouts:
             elif typ=='bool':out[key]=bool(raw[o])
             elif typ=='uint8' or (typ.startswith('E') and '*' not in typ and '<' not in typ):out[key]=int.from_bytes(raw[o:o+size],'little')
             elif typ.startswith('TArray<float'):out[key]=[struct.unpack('<f',v.to_bytes(4,'little'))[0] for v in arrays.get(o,[])]
+            elif typ in ('FText','FName'):
+                self.skipped_fields.append({'class':name,'field':key,'type':typ,'object_offset':o,
+                                            'reason':'Opaque runtime text/name semantics not reconstructed; no diagnostic value invented'})
             elif typ.startswith('F') and '*' not in typ and '<' not in typ and typ in self.byname:
                 out[key]=self.decode(typ,raw,arrays,o,(*active,name))
             else:self.skipped_fields.append({'class':name,'field':key,'type':typ,'object_offset':o})

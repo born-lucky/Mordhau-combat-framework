@@ -50,8 +50,8 @@ Typical root-coordinated commands, after building the test executables in a
 separately scheduled memory window, are:
 
 ```powershell
-cargo test -p mh-physics --features native-validation --lib production_open_rejects_guarded_bridge_before_creation -- --ignored --exact --nocapture --test-threads=1
-cargo test -p mh-physics --features native-validation --lib production_body_geometry_mass_and_teardown -- --ignored --exact --nocapture --test-threads=1
+cargo test -p mh-physics --features native-validation --lib tests::production_open_rejects_guarded_bridge_before_creation -- --ignored --exact --nocapture --test-threads=1
+cargo test -p mh-physics --features native-validation --lib tests::production_body_geometry_mass_and_teardown -- --ignored --exact --nocapture --test-threads=1
 cargo test -p mh-physics --features native-validation --test cooked_original original_wall_full_arrays_rays_and_teardown -- --ignored --exact --nocapture --test-threads=1
 cargo test -p mh-sim --features native-validation --test sim original_physx_death_bodies_fall_and_notify_starts_simulation -- --ignored --exact --nocapture --test-threads=1
 ```

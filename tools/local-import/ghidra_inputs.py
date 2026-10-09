@@ -174,6 +174,8 @@ def prepare(game,cache,classes,ghidra):
                 'headless_command':command,
                 'assembly_command':[sys.executable,str(Path(__file__).with_name('ghidra_assemble.py')),
                     str(stage/'constructor-journal.txt'),str(stage/'extract/native/decomp_r1'),str(stage/'game_functions.tsv')],
+                'raw_constants_command':[sys.executable,str(Path(__file__).with_name('ghidra_constants.py')),
+                    '--game-dir',str(game),'--stage-dir',str(stage)],
                 'limits':['No Java/original code is executed by this preparation stage.',
                           'Labels are limited to selected constructors and their direct PDB-addressed call targets; unresolved external calls remain uncertain.',
                           'No PDB prototype application, forced this-pointer typing or whole-image auto-analysis.',
