@@ -339,8 +339,29 @@ impl FxState {
         let attached: Vec<_> = self.live.iter().filter_map(|live|live.attachment.map(|a|
             serde_json::json!({"parent":format!("{:?}",a.parent),"origin_ue_cm":live.sim.origin,
                 "basis_ue":live.sim.basis,"alive":live.sim.alive()}))).collect();
+        // Bound this investigation to the original parry system and at most six actual particles.
+        // Reading cache/simulation/uniform values does not change birth, clocks, or renderer inputs.
+        let sparks: Vec<_> = self.live.iter().filter(|live|
+            live.sim.package == "Mordhau/Content/Mordhau/Particles/ParrySparks/P_spark_burst")
+            .flat_map(|live|live.sim.emitters.iter()).filter(|emitter|!emitter.particles.is_empty()).take(2)
+            .map(|emitter| {
+                let uniforms = self.materials.get(&emitter.material).and_then(|m|m.as_ref()).and_then(|m|match m {
+                    FxMat::Ue(handle) => umats.and_then(|a|a.get(handle)).map(|m|serde_json::json!({
+                        "view_cb135":m.u.view[135].to_array(),"pre_exposure":m.u.view[135].y,
+                        "material_cb0_to3":[m.u.mat[0].to_array(),m.u.mat[1].to_array(),m.u.mat[2].to_array(),m.u.mat[3].to_array()],
+                        "blend":format!("{:?}",m.blend)})),
+                    FxMat::Ported(_) => None,
+                });
+                let particles:Vec<_> = emitter.particles.iter().take(3).map(|p|serde_json::json!({
+                    "position_ue_cm":p.pos,"size_ue_cm":p.size,"hdr_rgb":[p.color[0],p.color[1],p.color[2]],
+                    "alpha":p.color[3],"relative_age":p.rel_time})).collect();
+                serde_json::json!({"emitter":emitter.name,"material":emitter.material,
+                    "square":emitter.square,"velocity_aligned":emitter.velocity_aligned,
+                    "actual_uniforms":uniforms,"particles":particles})
+            }).collect();
         serde_json::json!({"shader_dir":ue_material::shader_dir(),"materials":materials,"shader_cache":shaders,
-            "attached_emitters":attached,"scope":"Observed source/cache/selected material handles; GPU compilation and visual acceptance require logs and rendered frames"})
+            "attached_emitters":attached,"parry_spark_samples":sparks,
+            "scope":"Observed source/cache/selected material handles; GPU compilation and visual acceptance require logs and rendered frames"})
     }
 }
 

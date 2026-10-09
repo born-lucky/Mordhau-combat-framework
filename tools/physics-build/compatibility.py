@@ -13,6 +13,7 @@ BASE_SHA256 = {
     "PhysX_3.4/Include/PxSceneDesc.h": "6fda46bb44978eb6dc0cf318a7929094a3bd78a6c45a6e4732b6338f3accf694",
     "PhysX_3.4/Include/PxScene.h": "a15ed484a7021087ef1fa7c8e9ee5c6fe9befcd11ec33f5f2628212ca36f6e04",
     "PhysX_3.4/Include/cooking/PxCooking.h": "18709a5addaba1d6b3df0ffe9f3919b0680dcb47f84d6c9b410b24afc9ec86ea",
+    "PhysX_3.4/Include/geometry/PxConvexMeshGeometry.h": "0b0a30d8b11dc063cecee83fd0ef6206a45b542614270b35e7500ba24e2f0281",
     "PhysX_3.4/Source/PhysXExtensions/src/ExtD6JointSolverPrep.cpp": "1289e750823474fbf6e4cb8b4153ebe3e1493f62adf1516b3661b08917b0d3f1",
     "PhysX_3.4/Source/PhysXExtensions/src/ExtConstraintHelper.h": "ea0fc91cfc51b8fa196a48248dbc23b948f6d24531f434cf730f1e322a9f8f98",
 }
@@ -59,6 +60,16 @@ def adapt(relative, original):
         for kind in ("Triangle", "Convex"):
             text = once(text, "PxPhysicsInsertionCallback& insertionCallback, Px" + kind + "MeshCookingResult::Enum* condition = NULL) const = 0;", "PxPhysicsInsertionCallback& insertionCallback) const = 0;")
             changes.append("restore two-argument const create" + kind + "Mesh")
+    elif relative.endswith("PxConvexMeshGeometry.h"):
+        # Installed PDB: scale+4, convexMesh+32, meshFlags+40, padding+41.
+        # The later margin field fits in size48 but moves flags to44.
+        text = once(text, "convexMesh\t(NULL),\n\t\tmaxMargin\t(3.4e38f)", "convexMesh\t(NULL)")
+        text = once(text, "\t" + r"\param[in] margin" + "\tThe maximum margin. Used to limit how much PCM shrinks the geometry by in collision detection.\n", "")
+        text = once(text, "PxConvexMeshGeometryFlags flags = PxConvexMeshGeometryFlags(),\n\t\t\t\t\t\t\t\t\tfloat margin = 3.4e38f)", "PxConvexMeshGeometryFlags flags = PxConvexMeshGeometryFlags())")
+        text = once(text, "\t\tmaxMargin\t(margin),\n", "")
+        text = matching_line(text, r"^\tPxReal[^\r\n]*\bmaxMargin;[^\r\n]*\r?\n")
+        text = once(text, "\tif (maxMargin < 0.0f)\n\t\treturn false;\n", "")
+        changes.append("remove later convex maxMargin field, constructor argument/initializers and validation")
     elif relative.endswith("ExtConstraintHelper.h"):
         text = once(text, "(mRa + errorVec).cross(axis)", "mRa.cross(axis)")
         changes.append("installed locked-linear angular0 lever arm without positional error")

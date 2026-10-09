@@ -25,7 +25,9 @@ def check(text):
         if len(blocks) != 1:
             raise ValueError("Missing/nonunique compiler probe: " + name)
         offsets = []
-        for match in re.finditer(r"\b(?:call|jmp)\s+QWORD PTR\s+\[\w+\s*(?:\+\s*([0-9A-Fa-f]+)(h)?)?\]", blocks[0]):
+        # MSVC labels REX-prefixed indirect tail jumps rex_jmp in /FAs output.
+        # This is the same vtable dispatch, not an alternate expected slot.
+        for match in re.finditer(r"^\s*(?:call|jmp|rex_jmp)\s+QWORD PTR\s+\[\w+\s*(?:\+\s*([0-9A-Fa-f]+)(h)?)?\]", blocks[0], re.MULTILINE):
             number, hexadecimal = match.groups()
             offsets.append(int(number, 16 if hexadecimal else 10) if number else 0)
         if offsets != [expected]:

@@ -22,15 +22,17 @@ per-weapon values and curves as a separate mod layer.
 
 mh-framework provides an entry point to the engine-neutral simulation and typed
 data APIs. The Bevy application supplies input, camera, rendering, and the combat
-lab. A new setup interface and health/stamina presentation are under development;
+lab. The authored setup interface and health/stamina presentation are implemented;
 the bars read live fighter values and bounds rather than introducing new rules.
 The fork enables authored training figures and generic weapons; see
 [presentation and current limitations](docs/PRESENTATION.md).
 
 Original-game parity is ongoing. This is not a claim of complete 1:1 behavior
 across every weapon, attack phase, effect, map, or multiplayer mode. The existing
-recorded showcase demonstrates the earlier combat baseline; it does not verify
-the new distribution or custom presentation.
+recorded baseline showcase does not verify the new distribution. A separate
+498-frame developer-input render has now checked custom figures, normal/alternate
+Greatsword grips, live HUD damage values, blood impacts, and a physical death.
+Clean consumer setup and clearly visible parry sparks remain unverified.
 
 ## Local setup
 

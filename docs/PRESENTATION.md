@@ -35,6 +35,16 @@ in the user's local cache; they are not bundled in this repository. The resolver
 uses that configured cache rather than a developer build path.
 
 Source compilation and pure presentation-math tests have passed during staging.
+A 498-frame developer-input capture from source revision
+4e3578d4f1d9c7c9b3a7f81b43a6a56c4fcdf94b has been independently reviewed.
+Sampled frames show the authored figures and weapon, normal/alternate Greatsword
+grips, health/stamina labels and bar proportions matching core values, visible
+blood ribbons, and a falling 16-body physical corpse. This is bounded evidence;
+full corpse settling, continuous grip contact and all first-person shadow cases
+have not been accepted. Parry particles spawn, but a clear spark flash is still
+unverified in this fixture. No brightness or timing adjustment was made to mask it.
+
 Rendered candidate validation and clean consumer setup are separate acceptance
-checks. A developer-input capture, if made, must not be described as a clean-install
-or redistributable-package test.
+checks. The developer-input capture uses private generated data and the previously
+validated development physics bridge. It is not a clean-install or redistributable
+package test. Frames, videos and receipts remain in ignored build directories.

@@ -27,6 +27,8 @@ explicit `--cache-root` outside the source tree. The script does not overwrite,
 install, load or run a DLL. It checks the supported original executable and all
 four linked installed DLL fingerprints before compilation. Original DLLs remain
 in place; temporary import libraries and export listings stay in the cache.
+An explicit game directory also excludes cache/output paths inside it or above
+it; this check runs before any output directory is created.
 
 `source-manifest.json` binds every acquired Git blob and its original/adapted
 SHA256. `compatibility.patch` records the exact local modifications. All owner
@@ -47,6 +49,8 @@ The implemented local edits are:
   and the two-argument mesh-creation methods.
 - Remove exactly five later `PxScene` query-update virtual methods and restore
   the visualization getter's reference return.
+- Remove the later convex geometry margin field and associated constructor/
+  validation additions, preserving installed pointer32/flags40/padding41.
 - Restore locked-linear angular lever arms, soft-cone padding and the
   single-swing-free double-cone equation used by the installed solver.
 
@@ -77,5 +81,5 @@ python -m unittest discover -s tools/physics-build -p test_source_adapter.py
 ```
 
 The compiler-evidence tests use synthetic assembly and only test the checker.
-The four pinned-source tests read the exact owner's Git objects. Actual emitted
+The five pinned-source tests read the exact owner's Git objects. Actual emitted
 assembly is checked only during an explicitly requested build.

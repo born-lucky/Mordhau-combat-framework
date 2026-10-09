@@ -52,6 +52,9 @@ AT(PxCookingParams, gaussMapLimit, 0x40);
 SIZE(PxTriangleMeshDesc, 72); SIZE(PxConvexMeshDesc, 80); SIZE(PxMidphaseDesc, 12);
 AT(PxTriangleMeshDesc, materialIndices, 0x38); AT(PxConvexMeshDesc, flags, 0x48);
 AT(PxMidphaseDesc, mType, 8);
+SIZE(PxConvexMeshGeometry, 48); AT(PxConvexMeshGeometry, scale, 4);
+AT(PxConvexMeshGeometry, convexMesh, 32); AT(PxConvexMeshGeometry, meshFlags, 40);
+AT(PxConvexMeshGeometry, paddingFromFlags, 41);
 using TriangleCreate = PxTriangleMesh* (PxCooking::*)(const PxTriangleMeshDesc&, PxPhysicsInsertionCallback&) const;
 using ConvexCreate = PxConvexMesh* (PxCooking::*)(const PxConvexMeshDesc&, PxPhysicsInsertionCallback&) const;
 static_assert(std::is_same<decltype(&PxCooking::createTriangleMesh), TriangleCreate>::value);
@@ -60,7 +63,9 @@ static_assert(std::is_same<decltype(&PxScene::getVisualizationCullingBox), const
 using Simulate = void (PxScene::*)(PxReal, PxBaseTask*, void*, PxU32, bool);
 static_assert(std::is_same<decltype(&PxScene::simulate), Simulate>::value);
 static_assert(std::is_same<decltype(&PxScene::fetchResults), bool (PxScene::*)(bool, PxU32*)>::value);
-using GeometryRay = PxU32 (*)(const PxVec3&, const PxVec3&, const PxGeometry&, const PxTransform&, PxReal, PxHitFlags, PxU32, PxRaycastHit*);
+// Original and BSD declarations both restrict the output pointer (the installed
+// export encodes PEIAU). MSVC retains this qualifier in function-type identity.
+using GeometryRay = PxU32 (*)(const PxVec3&, const PxVec3&, const PxGeometry&, const PxTransform&, PxReal, PxHitFlags, PxU32, PxRaycastHit* PX_RESTRICT);
 static_assert(std::is_same<decltype(&PxGeometryQuery::raycast), GeometryRay>::value);
 
 // Keep wrappers separate so compiler-emitted vtable displacements can be

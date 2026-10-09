@@ -67,6 +67,11 @@ def output_directory(args):
     out = (args.output or build_root / stamp).resolve()
     if not out.is_relative_to(build_root) or out == build_root:
         raise ValueError("Output must be a new child of build/physics or the explicit cache root")
+    if args.game_dir:
+        game = args.game_dir.resolve()
+        for target in (build_root, out):
+            if target.is_relative_to(game) or game.is_relative_to(target):
+                raise ValueError("Cache/output must not be inside or an ancestor of the installed game")
     out.mkdir(parents=True, exist_ok=False)
     return out
 

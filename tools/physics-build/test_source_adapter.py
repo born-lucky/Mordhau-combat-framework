@@ -4,10 +4,39 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from compatibility import PIN, BASE_SHA256, adapt
 from verify_callsites import EXPECTED, check
+from build_bridge import output_directory
+
+
+class OutputSafetyTests(unittest.TestCase):
+    def test_game_overlap_rejected_before_mkdir(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            for cache, output, game in (
+                (base / "game/cache", base / "game/cache/build", base / "game"),
+                (base / "cache", base / "cache/build", base / "cache/build/game"),
+                (base / "cache", base / "cache/build", base / "cache/game"),
+            ):
+                args = SimpleNamespace(cache_root=cache, output=output, game_dir=game)
+                with self.subTest(cache=cache, output=output, game=game):
+                    with patch.object(Path, "mkdir") as mkdir:
+                        with self.assertRaisesRegex(ValueError, "installed game"):
+                            output_directory(args)
+                        mkdir.assert_not_called()
+
+    def test_disjoint_cache_creates_only_fresh_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            args = SimpleNamespace(cache_root=base / "cache", output=base / "cache/build", game_dir=base / "game")
+            with patch.object(Path, "mkdir") as mkdir:
+                self.assertEqual(output_directory(args), args.output.resolve())
+                mkdir.assert_called_once_with(parents=True, exist_ok=False)
 
 
 class CompilerEvidenceTests(unittest.TestCase):
@@ -27,6 +56,12 @@ class CompilerEvidenceTests(unittest.TestCase):
     def test_duplicate_call_refused(self):
         with self.assertRaises(ValueError):
             check(self.fixture().replace("jmp QWORD PTR [rax+488]", "call QWORD PTR [rax+488]\n jmp QWORD PTR [rax+488]"))
+
+    def test_msvc_rex_tail_jump_preserves_exact_offset_checks(self):
+        text = self.fixture().replace("jmp QWORD PTR", "rex_jmp QWORD PTR")
+        self.assertEqual(len(check(text)), 23)
+        with self.assertRaises(ValueError):
+            check(text.replace("rex_jmp QWORD PTR [rax+488]", "rex_jmp QWORD PTR [rax+528]"))
 
 
 @unittest.skipUnless(os.environ.get("MH_BSD_TEST_REPO"), "set MH_BSD_TEST_REPO for pinned source integrity tests")
@@ -79,6 +114,14 @@ class PinnedSourceTests(unittest.TestCase):
         helper = self.file("ExtConstraintHelper.h")
         self.assertIn("mRa.cross(axis)", helper)
         self.assertNotIn("(mRa + errorVec).cross(axis)", helper)
+
+    def test_convex_descriptor_has_original_field_order_without_later_margin(self):
+        text = self.file("PxConvexMeshGeometry.h")
+        declarations = re.findall(r"^\t[^\n;]*\b(scale|convexMesh|meshFlags|paddingFromFlags);", text, re.MULTILINE)
+        self.assertEqual(declarations, ["scale", "convexMesh", "meshFlags", "paddingFromFlags"])
+        self.assertNotIn("maxMargin", text)
+        self.assertNotIn("float margin", text)
+        self.assertIn("convexMesh\t(NULL)", text)
 
 
 if __name__ == "__main__":
