@@ -80,6 +80,8 @@ def install(destination: Path, cache: Path, sevenzip: str | None) -> dict:
             for name in selected:
                 filename = safe_name(f"{key}/{name}")
                 target = destination.joinpath(*PurePosixPath(filename).parts)
+                if not target.resolve().is_relative_to(destination.resolve()):
+                    raise ValueError(f"Recording path escapes bank: {filename}")
                 target.parent.mkdir(parents=True, exist_ok=True)
                 blob = read_member(packages[key], name, sevenzip)
                 if not blob.startswith((b"OggS", b"RIFF")):

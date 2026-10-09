@@ -25,7 +25,8 @@ impl Bank {
                 if !full.starts_with(&bank.root) { return Err(format!("Sample escapes bank: {name}")); }
                 if !bank.decoded.contains_key(name) {
                     let bytes = std::fs::read(full).map_err(|e| e.to_string())?;
-                    let mut pcm = if bytes.starts_with(b"OggS") { decode_ogg(&bytes)? } else { decode_wav(&bytes)? };
+                    let mut pcm = if bytes.starts_with(b"OggS") { decode_ogg(&bytes) } else { decode_wav(&bytes) }
+                        .map_err(|e| format!("{name}: {e}"))?;
                     if pcm.channels == 0 || pcm.rate == 0 || pcm.samples.is_empty() { return Err(format!("Empty/invalid sample: {name}")); }
                     // Spatial one-shots use mono so their stereo recording does not widen the native emitter.
                     let mut mono: Vec<i16> = pcm.samples.chunks_exact(pcm.channels as usize)
@@ -101,7 +102,7 @@ pub fn role(cue: &str, wave: &str) -> Option<&'static str> {
     None
 }
 
-/// Installer bank WAV contract: uncompressed RIFF little-endian PCM16, mono/stereo.
+/// Reviewed packs contain PCM16 and one IEEE float32 RIFF WAV; mono/stereo only.
 fn decode_wav(bytes: &[u8]) -> Result<Pcm, String> {
     if bytes.len() < 12 || &bytes[..4] != b"RIFF" || &bytes[8..12] != b"WAVE" { return Err("Expected Ogg Vorbis or RIFF WAV".into()); }
     let mut fmt = None;
@@ -120,12 +121,19 @@ fn decode_wav(bytes: &[u8]) -> Result<Pcm, String> {
     let f = fmt.filter(|f| f.len() >= 16).ok_or("Missing WAV format")?;
     let channels = u16::from_le_bytes(f[2..4].try_into().unwrap());
     let rate = u32::from_le_bytes(f[4..8].try_into().unwrap());
-    if u16::from_le_bytes(f[..2].try_into().unwrap()) != 1 || u16::from_le_bytes(f[14..16].try_into().unwrap()) != 16
-        || !(1..=2).contains(&channels) || !(8000..=192000).contains(&rate)
-        || u16::from_le_bytes(f[12..14].try_into().unwrap()) != channels * 2 { return Err("Bank requires PCM16 mono/stereo WAV".into()); }
+    let encoding = u16::from_le_bytes(f[..2].try_into().unwrap());
+    let bits = u16::from_le_bytes(f[14..16].try_into().unwrap());
+    if !matches!((encoding, bits), (1,16) | (3,32)) || !(1..=2).contains(&channels) || !(8000..=192000).contains(&rate)
+        || u16::from_le_bytes(f[12..14].try_into().unwrap()) != channels * (bits / 8) { return Err("Bank requires PCM16 or float32 mono/stereo WAV".into()); }
     let data = data.ok_or("Missing WAV samples")?;
-    if data.is_empty() || data.len() % (channels as usize * 2) != 0 { return Err("Invalid WAV frame count".into()); }
-    Ok(Pcm { rate, channels, samples: Arc::new(data.chunks_exact(2).map(|v| i16::from_le_bytes([v[0], v[1]])).collect()) })
+    if data.is_empty() || data.len() % (channels as usize * (bits as usize / 8)) != 0 { return Err("Invalid WAV frame count".into()); }
+    let samples = if encoding == 1 { data.chunks_exact(2).map(|v| i16::from_le_bytes([v[0], v[1]])).collect() }
+        else { data.chunks_exact(4).map(|v| {
+            let sample = f32::from_le_bytes(v.try_into().unwrap());
+            if !sample.is_finite() { return Err("Non-finite float WAV sample"); }
+            Ok(crate::mixer::ov_read_sample(sample))
+        }).collect::<Result<Vec<_>,_>>()? };
+    Ok(Pcm { rate, channels, samples: Arc::new(samples) })
 }
 
 #[cfg(test)] mod tests {

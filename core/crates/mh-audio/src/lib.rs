@@ -914,6 +914,34 @@ fn update_voices(
 mod tests {
     use super::*;
 
+    /// Explicit local integration test; requires a downloaded bank and the owner's mounted game.
+    #[test]
+    #[ignore = "requires MH_AUDIO_REPLACEMENTS and an installed game"]
+    fn installed_framework_audio_substitutes_native_cue_leaves() {
+        let directory = std::env::var_os("MH_AUDIO_REPLACEMENTS").expect("set replacement bank directory");
+        let bank = replacements::Bank::open(std::path::Path::new(&directory)).expect("all selected samples decode");
+        assert_eq!(bank.sample_count(), 89);
+        let p = Paks(std::sync::Arc::new(mh_pak::Vfs::mount_default().expect("owner's game paks")));
+        let mut st = AudioState::new(&p);
+        for (cue, expected) in [
+            ("Mordhau/Content/Mordhau/Audio/Cues/Weapons/Wooshes/SC_Woosh_BladedMassive", "swing"),
+            ("Mordhau/Content/Mordhau/Audio/Cues/Weapons/Hits/SC_Hit_BladedMassive", "flesh"),
+            ("Mordhau/Content/Mordhau/Audio/Cues/Voices/Englishman/SC_EnglishmanAttack", "voice_effort"),
+            ("Mordhau/Content/Mordhau/Audio/Cues/Voices/Englishman/SC_EnglishmanDeath", "voice_death"),
+        ] {
+            let waves = st.cue(cue).expect("native cue").waves.clone();
+            assert!(!waves.is_empty());
+            for wave in waves {
+                let source = st.sample_source(cue, &wave);
+                assert!(source.starts_with(&format!("framework:{expected}:")), "{cue}: {wave}: {source}");
+                let replacement = st.cue_pcm(cue, &wave).expect("replacement PCM");
+                assert!(replacement.frames() > 0);
+                let original = st.wave_pcm(&wave).expect("original PCM for comparison only");
+                assert!(*replacement.samples != *original.samples, "original recording still returned");
+            }
+        }
+    }
+
     /// BP_Longsword's cues resolve through the CDO chain, play waves of the cue, attenuate with distance, and the
     /// first wave's payload is Ogg
     #[test]
