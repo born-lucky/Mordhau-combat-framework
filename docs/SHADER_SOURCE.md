@@ -18,4 +18,3 @@ language automatically grants third-party rights or authorize original caches.
 The original shader caches, decompiler dumps and material/texture records remain
 excluded. The shadow-capsule JSON contains actual original body-asset geometry and
 must still be read from installed packages and generated into the user's cache.
-

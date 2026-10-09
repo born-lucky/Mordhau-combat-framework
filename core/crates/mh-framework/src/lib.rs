@@ -14,4 +14,3 @@ pub use mh_spec as matrix;
 pub use mordhau_core as core;
 pub use mh_host::Data as InstalledData;
 pub use mh_sim::{FighterDesc, PoseSource, Sim, SimInput};
-
