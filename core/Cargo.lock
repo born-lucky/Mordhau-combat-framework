@@ -3071,6 +3071,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "mh-framework"
+version = "0.1.0"
+dependencies = [
+ "mh-host",
+ "mh-install",
+ "mh-sim",
+ "mh-spec",
+ "mordhau-core",
+]
+
+[[package]]
 name = "mh-fx"
 version = "0.1.0"
 dependencies = [
@@ -3221,6 +3232,14 @@ dependencies = [
  "mh-world",
  "mordhau-core",
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "mh-setup"
+version = "0.1.0"
+dependencies = [
+ "mh-install",
  "serde_json",
 ]
 

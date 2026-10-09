@@ -5,14 +5,10 @@
 
 use crate::material::{MaterialDesc, TexRef, Uniform};
 
-/// Locally imported shader source. The distribution never embeds or supplies this data.
+/// Authored WGSL implementation of the same shading algorithms as this Rust module.
+/// This is program source, not the original game's cooked shader cache or asset data.
 pub fn ue_tint_wgsl() -> &'static str {
-    static SOURCE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
-    SOURCE.get_or_init(|| {
-        let root = std::env::var_os("MORDHAU_LOCAL_DATA").expect("local-import cache required");
-        std::fs::read_to_string(std::path::PathBuf::from(root).join("shaders/ue_tint.wgsl"))
-            .expect("locally reconstructed material shader missing")
-    })
+    include_str!("../shaders/ue_tint.wgsl")
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

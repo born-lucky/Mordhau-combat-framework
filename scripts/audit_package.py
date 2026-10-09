@@ -8,9 +8,16 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+from reviewed_reader_sources import OWN_READER_SOURCE
 
-ALLOWED_SUFFIXES = {".rs", ".toml", ".lock", ".cpp", ".h", ".md", ".py", ".yml", ".sh"}
+ALLOWED_SUFFIXES = {".rs", ".toml", ".lock", ".cpp", ".h", ".md", ".py", ".yml", ".sh", ".ps1"}
 ALLOWED_JSON = {"release-base.json", "release-state.json"}
+OWN_SHADER_SOURCE = {"core/crates/mh-assets/shaders/ue_tint.wgsl", "core/crates/mh-runtime/src/uepost.wgsl"}
+OWN_EMBEDDED_SOURCE = {
+    "core/crates/mh-setup/src/main.rs": {b"setup.ps1"},
+    "core/crates/mh-assets/src/shader.rs": {b"../shaders/ue_tint.wgsl"},
+    "core/crates/mh-runtime/src/uepost_render.rs": {b"uepost.wgsl"},
+}
 EXCLUDED_DIRS = {"extract", "ghidra", "state", "data_gen", "sheets", "cache", "sdk", "vendor", "node_modules"}
 GAME_SUFFIXES = {".exe", ".dll", ".pak", ".pdb", ".uasset", ".uexp", ".ubulk", ".glb", ".gltf", ".wgsl", ".tsv", ".xlsx", ".png", ".jpg", ".ogg", ".wav", ".mp3", ".mp4", ".zip", ".7z"}
 SENSITIVE = re.compile(rb"(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)")
@@ -25,8 +32,8 @@ def errors_for(path: Path, relative: str) -> list[str]:
     if any(p.lower() in EXCLUDED_DIRS for p in parts):
         errors.append(f"Private or generated directory: {relative}")
     suffix = path.suffix.lower()
-    allowed = suffix in ALLOWED_SUFFIXES or relative in ALLOWED_JSON or relative == ".gitignore"
-    if suffix in GAME_SUFFIXES or not allowed:
+    allowed = suffix in ALLOWED_SUFFIXES or relative in ALLOWED_JSON or relative in OWN_SHADER_SOURCE or relative in OWN_READER_SOURCE or relative == ".gitignore" or (relative.startswith("demo/") and suffix == ".txt")
+    if (suffix in GAME_SUFFIXES and relative not in OWN_SHADER_SOURCE) or not allowed:
         errors.append(f"Unreviewed file type/path: {relative}")
     if path.stat().st_size > 2_000_000:
         errors.append(f"Oversized source input: {relative}")
@@ -39,7 +46,7 @@ def errors_for(path: Path, relative: str) -> list[str]:
         if re.search(rb"include_bytes!\s*\(", blob):
             errors.append(f"Embedded binary requires separate review: {relative}")
         for payload in re.findall(rb'include_str!\s*\(\s*"([^"]+)"', blob):
-            if payload != b"../news/news.md":
+            if payload != b"../news/news.md" and payload not in OWN_EMBEDDED_SOURCE.get(relative, set()):
                 errors.append(f"Unreviewed embedded text: {relative}: {payload.decode()}")
     return errors
 

@@ -2,8 +2,9 @@
 
 This repository is a private development snapshot. No broad open-source license
 is granted here while ownership and third-party redistribution review remain open.
-Original reverse-engineered logic, names, layouts, and shader algorithms in source
-require review before public source distribution as well as binary distribution.
+Source and dependency provenance review is recorded separately from original-game
+assets. The two rewrite WGSL programs are authored source; their review is described
+in docs/SHADER_SOURCE.md. Original shader payloads are excluded.
 
 MORDHAU is developed and published by Triternion. Original game code, content,
 trademarks, executable files, libraries and extracted or generated records remain

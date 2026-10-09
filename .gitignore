@@ -32,5 +32,3 @@
 .env.*
 /core/crates/mh-runtime/src/shadow_capsules.json
 /core/crates/mh-level/placements.tsv
-/core/crates/mh-assets/shaders/ue_tint.wgsl
-/core/crates/mh-runtime/src/uepost.wgsl

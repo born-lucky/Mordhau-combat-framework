@@ -19,6 +19,7 @@ mod bridge;
 mod camera;
 mod equiv;
 mod fighter;
+mod framework_ui;
 mod gameworld;
 mod hud;
 mod devmenu;
@@ -397,7 +398,7 @@ fn main() -> AppExit {
         }
         Mode::Windowed => {
             app.add_plugins(DefaultPlugins.set(assets).set(log).set(WindowPlugin {
-                primary_window: Some(Window { title: "Mordhau (mh-runtime)".into(), ..default() }),
+                primary_window: Some(Window { title: "Mordhau Combat Framework".into(), ..default() }),
                 ..default()
             }));
         }
@@ -450,6 +451,7 @@ fn main() -> AppExit {
         .add_plugins((mh_ui::UiPlugin, mh_fx::FxPlugin, mh_audio::AudioPlugin, bridge::BridgePlugin, menu::MenuPlugin { open: args.legacy_menu, real: args.menu }, gameworld::GameWorldPlugin))
         .add_plugins((level::LevelPlugin, sim::SimPlugin, fighter::FighterPlugin, camera::CameraPlugin, hud::HudPlugin { show: args.debug_hud }, script::ScriptPlugin, input::InputPlugin, memwatch::MemWatchPlugin, armory_host::ArmoryHostPlugin))
         .add_plugins(settings_apply::SettingsApplyPlugin)
+        .add_plugins(framework_ui::FrameworkUiPlugin)
         .add_plugins(devmenu::DevMenuPlugin)
         .add_plugins(combat_timings::CombatTimingsPlugin)
         .insert_resource(camera::CamRequest(args.cam))

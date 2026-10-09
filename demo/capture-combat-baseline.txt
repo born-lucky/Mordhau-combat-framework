@@ -1,0 +1,33 @@
+# Showcase recipe. Expand with showcase.py; @ directives are generator comments.
+# Only ordinary runtime inputs. Original game data and output images stay local.
+load_map TestLevel
+spawn 1
+view 1p
+drive 0 0
+debug rw.CombatTimings reset
+debug m.ShowPawnDebug 0
+debug m.VisualizeBlockCollider 0
+debug m.DrawTracers 0
+wait 120
+# @capture introduction 2 Rust + Bevy combat rewrite
+# @attack right_strike 3 0 0 Directional attacks - right strike
+# @attack left_strike 3 1 0 Directional attacks - left strike
+# @attack right_stab 3 2 0 Directional attacks - right stab
+# @attack left_stab 3 3 0 Directional attacks - left stab
+# @switch alternate_grip 2 Alternate grip
+# @attack alternate_strike 3 0 0 Alternate grip - strike
+# @attack alternate_stab 3 2 0 Alternate grip - stab
+# @switch normal_grip 2 Normal grip
+debug m.DrawTracersStayTime 0.3
+debug m.DrawTracers 1
+# @attack blade_traces 3 0 0 Sampled blade and environment sweeps
+debug m.DrawTracers 0
+view fly
+cam_bone 0 Spine1 330 0 155
+wait 30
+# @attack third_person 3 0 0 Third-person attack pose
+debug m.VisualizeBlockCollider 1
+# @parry parry_geometry 3 Parry motion and collision boxes
+debug m.VisualizeBlockCollider 0
+wait 20
+quit

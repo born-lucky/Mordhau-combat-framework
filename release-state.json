@@ -7,8 +7,9 @@
   "blockers": [
     "Complete EXE-plus-paks local data importer",
     "Exact PhysX extension redistribution rights or replacement",
-    "Reverse-engineered source and dependency rights review",
+    "Source/dependency provenance and final binary packaging review",
     "Clean-install startup and combat verification",
-    "Final executable and archive independent asset audit"
+    "Final executable and archive independent asset audit",
+    "Custom presentation and corrected hit effects functional validation"
   ]
 }

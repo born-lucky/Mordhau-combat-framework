@@ -10,6 +10,11 @@ placed-level TSV, and three scenario JSON fixtures. It included no ignored files
 symlinks/junctions, original game data, compiled binary, SDK, extraction directory,
 private decomp output, state/checkpoints, recordings, screenshots or spreadsheets.
 
+The two authored rewrite WGSL programs were subsequently reviewed and restored
+as source code; see SHADER_SOURCE.md. Raw original shader bytes remain excluded.
+The importer also packages an explicitly reviewed source-only GDScript reader
+closure, with no cached records or private decompilation output.
+
 Original game files remain in the user's installation. Locally generated records
 remain in an external per-user cache. Neither location belongs in Git, release
 archives, CI artifacts, crash attachments, or issue submissions.

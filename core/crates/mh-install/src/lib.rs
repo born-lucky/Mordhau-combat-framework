@@ -187,7 +187,7 @@ impl RuntimeInputs {
             }
         }
         for name in MOTION_HEADERS { required(&format!("extract/native/types/{name}.h"))?; }
-        for file in ["shaders/ue_tint.wgsl", "shaders/uepost.wgsl", "shadow_capsules.json", "state/physics/mh_physx.dll"] { required(file)?; }
+        for file in ["shadow_capsules.json", "state/physics/mh_physx.dll"] { required(file)?; }
         let extract = directory(&local_data.join("extract"), "Local original import directory")?;
         Ok(Self { install, local_data, spec, extract })
     }

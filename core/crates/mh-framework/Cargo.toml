@@ -1,0 +1,14 @@
+[package]
+name = "mh-framework"
+description = "Engine-neutral entry point to the Mordhau Rust combat framework"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+mordhau-core = { path = "../mordhau-core" }
+mh-sim = { path = "../mh-sim" }
+mh-host = { path = "../mh-host" }
+mh-spec = { path = "../mh-spec" }
+mh-install = { path = "../mh-install" }
+

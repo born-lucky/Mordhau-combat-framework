@@ -1,87 +1,86 @@
-# Mordhau Rewrite in Rust v1 — combat build
+# Mordhau Combat Framework — Rust v1
 
-A separate development snapshot of the experimental Rust and Bevy combat rewrite.
-**Private staging only: there is no public playable release or downloadable game executable yet.**
-The combat source baseline is `5e222ec3da7b828804f70d54d33c15a84c12075d`.
-This repository has a fresh history and is independent of the main private development repository.
-The main installed combat build is not modified by this distribution work.
+An experimental Rust and Bevy melee combat framework built from the MORDHAU
+rewrite. It separates combat simulation, locally imported game records, and
+presentation so hosts and mods can reuse the combat systems.
+
+The distribution follows the structure of
+[ELDEN-RING-Combat-Rewrite](https://github.com/Funny-Bones/ELDEN-RING-Combat-Rewrite):
+source code, a local Python setup step, a Cargo application, custom stand-in
+visuals, and scripted combat demonstrations. This is a separate repository with
+fresh history; development here does not replace the main installed combat build.
+
+**Private staging: the complete setup-to-play path is still being built and tested.
+There is no public playable download yet.**
+
+## Combat and framework
+
+The source includes attack phases and pose evaluation, normal/alternate grips,
+posed weapon traces, parry collision, stamina and damage rules, environmental
+hit-stop, effects, and physical death ragdolls. Combat timing tools expose
+per-weapon values and curves as a separate mod layer.
+
+mh-framework provides an entry point to the engine-neutral simulation and typed
+data APIs. The Bevy application supplies input, camera, rendering, and the combat
+lab. A new setup interface and health/stamina presentation are under development;
+the bars read live fighter values and bounds rather than introducing new rules.
+
+Original-game parity is ongoing. This is not a claim of complete 1:1 behavior
+across every weapon, attack phase, effect, map, or multiplayer mode. The existing
+recorded showcase demonstrates the earlier combat baseline; it does not verify
+the new distribution or custom presentation.
+
+## Local setup
+
+Game content is not supplied by this repository. Use a legitimately purchased
+supported installation. The importer reads local game files and writes generated
+records to an external user cache. No downloader or private exported-data fallback
+is included.
+
+The current diagnostic setup command is:
+
+```text
+python tools/setup.py --game-dir "YOUR-MORDHAU-INSTALL" --cache-dir "YOUR-LOCAL-CACHE" --json
+```
+
+Native records and shadow-capsule import have been checked against the installed
+original files. Full combat-matrix generation and the redistributable native
+physics bridge remain unfinished. Accordingly, setup currently returns
+runtime_ready:false; **this command does not yet produce a runnable game**.
+See [local import status](docs/LOCAL_IMPORT.md) for dependencies and stage details.
+
+Matching original EXE/PDB files are currently needed for the native import step.
+They identify the supported layout, not account ownership. An EXE check on every
+launch is not a design requirement. The current runtime still reads original paks
+and PhysX libraries locally; a self-contained cache-only sandbox is future work.
+The staging runtime's older launch preflight has not yet been migrated to that
+final setup contract.
 
 ## Thank you, Triternion
 
 We thank **Triternion and the MORDHAU developers** for creating what we consider a
-revolutionary, AAA-quality first-person melee combat system. Their work on precise,
-expressive combat is the reason this project exists.
+revolutionary, AAA-quality first-person melee combat system. Its precise,
+expressive combat inspired this project.
 
 **Buy and support the original game:** [MORDHAU on Steam](https://store.steampowered.com/app/629760/MORDHAU/)
-and [the official MORDHAU website](https://mordhau.com/).
-We do not endorse game piracy. Use a legitimately purchased installation.
-This is an unofficial fan project; Triternion has not endorsed or authorized it.
-MORDHAU and its original game content belong to their respective rights holders.
+and [the official website](https://mordhau.com/).
+We do not endorse piracy. This is an unofficial fan project with no claim of
+Triternion endorsement. Original game content is not licensed by this project.
 
-## Original installation required
+## Development
 
-The v1 launcher and direct Rust runtime validate the supported original Windows
-installation before game startup. Set `MORDHAU_DIR` to the original Steam MORDHAU
-folder, not the rewrite folder or the EXE itself.
-The check requires the original `Mordhau/Binaries/Win64/Mordhau-Win64-Shipping.exe`,
-64-bit AMD64 PE format, its supported SHA-1, installed paks, and the original PhysX libraries.
-Supported original build: `702625635`. Other builds fail closed pending compatibility work.
-
-An EXE is not an asset archive. Meshes, animations, textures, audio, levels, and
-Blueprint data are read from the original installation's `.pak` files.
-This repository supplies no original EXEs, DLLs, paks, extracted assets, decompiled
-output, generated combat records, spreadsheets, shadow-capsule tables, or original
-shader payloads. Local imported data must stay outside the repository in a
-user cache set by `MORDHAU_LOCAL_DATA`.
-
-Installation checks establish compatible local files, **not proof of purchase or
-Steam account ownership**. They are not DRM and do not guarantee legal permission
-to distribute a rewrite. This project does not bypass the original game's DRM,
-license checks, or anti-cheat, and does not replace the original game for online play.
-
-## Why there is no playable download yet
-
-The development runtime currently depends on 38 generated specification files,
-native class ancestry, and executable constants. Its old generation chain needs
-private local Ghidra/PDB and extraction output. A consumer importer that reconstructs
-these solely from the user's supported EXE and installed paks is **not implemented**.
-Locally reconstructed shader and capsule inputs are also required. Missing inputs
-must stop startup; stub combat is not an acceptable substitute for this build.
-
-The original development executable embeds extracted capsule geometry and shader
-ports. It is deliberately not included. The v1 source reads those inputs locally
-instead. The existing native physics bridge contains third-party extension code
-whose exact redistribution license must be established or replaced before shipping.
-
-See [release blockers](docs/RELEASE_BLOCKERS.md), [distribution rules](docs/DISTRIBUTION.md),
-and [rights and third-party notices](NOTICE.md). `scripts/audit_package.py` checks
-this source-only snapshot; passing it is not the same as a runnable release.
-
-## Current combat scope
-
-This snapshot preserves the combat source for attack poses, original-data-driven
-weapon traces, parry collision, alternate grips, tunable phase timings, environment
-hit-stop, effects, and ragdoll integration. Work toward original-game parity is
-ongoing. Do not interpret v1 as a claim of complete 1:1 behavior across all weapons,
-attack phases, maps, multiplayer, or effects.
-
-## Development validation
-
-The isolated install-gate tests do not require shipping or running the original game.
-Run the package audit and its tests with Python 3.11 or later:
+See [framework APIs](docs/FRAMEWORK.md), [release acceptance checks](docs/RELEASE_BLOCKERS.md),
+[distribution boundaries](docs/DISTRIBUTION.md), and [notices](NOTICE.md).
+The combat baseline is 5e222ec3da7b828804f70d54d33c15a84c12075d.
 
 ```text
 python scripts/audit_package.py
 python -m unittest discover -s scripts -p "test_*.py"
 ```
 
-This snapshot includes no end-user build wrapper, redistributable native bridge,
-generated data, or complete import/build recipe. Focused installation-gate tests
-were run through the main project's internal serialized wrapper with a separate
-build directory; that wrapper is not provided here. Do not copy private development output here
-to make a release appear complete.
-
-The pinned GitHub Actions audit workflow is saved as a manual template at
-`docs/templates/source-audit.yml`. It is not enabled: the current GitHub login
-lacks the `workflow` permission. Run the local audits before committing; a later
-maintainer with that permission can install the template under `.github/workflows/`.
+The source audit rejects original binaries, assets, generated tables, secrets,
+and unreviewed payloads. Passing it does not establish a working application.
+Captures and imported records stay out of Git. The GitHub Actions audit is a
+manual template at docs/templates/source-audit.yml; it is not enabled.
+The repository becomes public only after the runnable distribution passes its
+functional, provenance, and packaging checks.

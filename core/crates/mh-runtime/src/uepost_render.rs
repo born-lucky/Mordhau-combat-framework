@@ -145,10 +145,8 @@ pub struct UePostPlugin;
 
 impl Plugin for UePostPlugin {
     fn build(&self, app: &mut App) {
-        // Shader data is read from the user's local cache, never embedded in v1.
-        let root = std::env::var_os("MORDHAU_LOCAL_DATA").expect("local-import cache required");
-        let shader = std::fs::read_to_string(std::path::PathBuf::from(root).join("shaders/uepost.wgsl"))
-            .expect("locally reconstructed postprocess shader missing");
+        // Our WGSL program is source code; the original cooked shader cache never ships.
+        let shader = include_str!("uepost.wgsl");
         let _ = app
             .world_mut()
             .resource_mut::<Assets<Shader>>()

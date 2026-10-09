@@ -1,0 +1,22 @@
+# Capture attempt: captions require actual parry/death state and rendered review.
+# Damage comes from ordinary melee traces, not synthetic damage or health edits.
+load_map TestLevel
+spawn 2
+view 1p
+debug rw.CombatTimings reset
+debug m.ShowPawnDebug 0
+debug m.DrawTracers 0
+drive 0 0
+wait 120
+move 0 1 0
+wait 186
+move 0 0 0
+wait 120
+# @duelparry parry_contact 3 Melee parry contact
+# @attack first_contact 3 0 0 Melee impact and weapon blood
+view fly
+cam_bone 1 Spine1 330 -8 155
+wait 20
+# @attack death_ragdoll 3 0 0 Death and physical ragdoll
+wait 20
+quit
