@@ -1,6 +1,6 @@
 {
   "version": "v1-source-preview",
-  "repository_visibility": "private",
+  "repository_visibility": "public",
   "public_release_ready": false,
   "playable_download": false,
   "local_importer_implemented": false,

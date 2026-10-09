@@ -1,6 +1,6 @@
 # Public release blockers
 
-Playable release state: BLOCKED. The public source preview is being prepared; there is no playable game release.
+Playable release state: BLOCKED. The source preview is public; there is no playable game release.
 
 1. Implement and verify a complete local importer from the supported original EXE
    and paks. Reconstruct native constructor defaults, Blueprint overrides, matrix
