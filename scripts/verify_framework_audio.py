@@ -20,7 +20,7 @@ def main():
     folder = args.output.resolve(); folder.mkdir(parents=True, exist_ok=True)
     config = folder / "config"; config.mkdir(exist_ok=True)
     (config / "Input.ini").write_text('[/Script/Mordhau.MordhauInput]\nActionMappings=(ActionName="Kick",Key=F)\n')
-    (config / "GameUserSettings.ini").write_text('[/Script/Mordhau.MordhauGameUserSettings]\nResolutionSizeX=1024\nResolutionSizeY=576\nFullscreenMode=2\nFrameRateLimit=60\n')
+    (config / "GameUserSettings.ini").write_text('[/Script/Mordhau.MordhauGameUserSettings]\nResolutionSizeX=1024\nResolutionSizeY=576\nFullscreenMode=2\nFrameRateLimit=60\nFieldOfView=93\n')
     script = folder / "validation.txt"
     lines = ["load_map TestLevel", "spawn 2", "ui match", "view 1p", "wait 8s", "move 0 1 0", "wait 66", "move 0 0 0", "move 1 0 0 180", "wait 60",
         f"dump_state {folder.as_posix()}/before", "input 0 attack 0 0", "wait 45", "input 1 parry", "wait 100", f"dump_state {folder.as_posix()}/parry"]
