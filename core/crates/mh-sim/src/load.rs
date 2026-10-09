@@ -58,6 +58,8 @@ pub fn load(m: &mh_spec::Spec, vfs: Arc<mh_pak::Vfs>, weapons: &[&str]) -> Resul
     let target_ref = mh_assets::skeletal_mesh::mesh_reference(&src, &mesh).map_err(|e| e.0)?;
     let skeleton = Skeleton::from_retargeted_ref(&rs, &modes, &target_ref)?;
     let shape_bones = shapes.iter().map(|s| skeleton.find(&s.bone)).collect();
+    let character_sockets = crate::physics::sockets(&rd, &mesh)?.into_iter()
+        .filter_map(|(name, socket)| skeleton.find(&socket.bone).map(|bone| (name, (bone, socket.xf)))).collect();
     let mut wg = HashMap::new();
     let mut paths: Vec<String> = weapons.iter().map(|s| s.to_string()).collect();
     paths.push(spec.kick_weapon_path.clone());
@@ -145,6 +147,7 @@ pub fn load(m: &mh_spec::Spec, vfs: Arc<mh_pak::Vfs>, weapons: &[&str]) -> Resul
         shape_bones,
         skeleton,
         mesh_xf,
+        character_sockets,
         weapons: wg,
         grip_pitch_right: c("PLAYER_grip_pitch_right")?,
         grip_pitch_left: c("PLAYER_grip_pitch_left")?,

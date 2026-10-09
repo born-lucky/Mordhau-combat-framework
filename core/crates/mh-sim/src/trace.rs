@@ -9,7 +9,8 @@
 //! Four extra hand/environment segments precede the ordinary segments when the authored weapon flag is set,
 //! except moves4/5. They accept clashes and WorldStatic, excluding character/body/block/shield hits. The original
 //! complex WorldStatic query latches the first segment hit separately from channel0xf pawn/equipment hits.
-//! Additional shield tracers and cosmetic network tracing remain separate unported paths.
+//! Kick primary/additional traces use UKickMotion's character sockets. Additional
+//! shield tracers and cosmetic network tracing remain separate unported paths.
 
 use crate::physics::{segment_shape, BodyShape};
 use mordhau_core::combat::world::{HitComp, RawHit, TraceHost, TraceSample, WorldBlock};
@@ -71,6 +72,7 @@ pub struct Geometry {
     pub shape_bones: Vec<Option<usize>>,
     pub skeleton: crate::pose::Skeleton,
     pub mesh_xf: FTransform,
+    pub character_sockets: HashMap<String, (usize, FTransform)>,
     /// BP_MordhauCharacter BlockCollider template: RelativeLocation and BoxExtent (UE cm)
     pub block_collider_rel: FVector,
     pub block_collider_extent: FVector,
@@ -93,6 +95,7 @@ pub struct Posed {
     pub mesh_z_adjust: f32,
     pub bones: Vec<FTransform>,
     pub tracer: UeTracer,
+    pub additional_tracer: Option<UeTracer>,
     /// the ClashCollider capsule relative to the weapon mesh (centre, half height incl. radius, radius), placed by
     /// RepositionClashCollider at the attack's start; None before any attack
     pub clash: Option<(FVector, f32, f32)>,
@@ -123,6 +126,12 @@ pub struct SampledTrace {
 }
 
 impl Geometry {
+    /// UKickMotion OverrideTrace/OverrideAdditionalTrace: animated socket -> mesh -> actor.
+    pub fn character_socket_world(&self, p: &Posed, name: &str) -> FVector {
+        self.character_sockets.get(name).filter(|(bone, _)| *bone < p.bones.len())
+            .map(|(bone, socket)| socket.then(&self.bone_world(p, *bone)).loc)
+            .unwrap_or_else(|| self.mesh_xf_adj(p.mesh_z_adjust).then(&p.actor).loc)
+    }
     pub fn bone_world(&self, p: &Posed, bone: usize) -> FTransform {
         p.bones[bone].then(&self.mesh_xf_adj(p.mesh_z_adjust)).then(&p.actor)
     }
@@ -152,6 +161,19 @@ impl Geometry {
 }
 
 impl SimTrace {
+    fn is_kick(&self, w: &World, fi: usize) -> bool {
+        w.cur_m(fi).is_some_and(|m| m.attack().is_some() && w.spec.is_class_of(&m.def.base.native, "UKickMotion"))
+    }
+    fn attack_weapon<'a>(&self, w: &'a World, fi: usize) -> Option<&WeaponGeo> {
+        match w.cur_m(fi).filter(|m| m.attack().is_some()) {
+            Some(m) => {
+                // reset runs before OnBegin assigns the capture; resolve the same FindWeapon actor then.
+                let id = m.attack().and_then(|a| a.weapon_actor).or_else(|| w.find_weapon_actor(fi, &m.def.base.native))?;
+                self.geo.weapons.get(&w.equipment_actor(id)?.path)
+            }
+            None => self.weapon_of(w, fi),
+        }
+    }
     fn weapon_of<'w>(&self, w: &'w World, fi: usize) -> Option<&WeaponGeo> {
         let f = &w.fighters[fi];
         f.weapon.as_ref()?;
@@ -164,10 +186,13 @@ impl TraceHost for SimTrace {
     /// bArePreviousTracersValid = bAreCurrentTracersValid; bAreCurrentTracersValid = !bAreCurrentTracersInvalidated
     fn prepare(&self, w: &World, fi: usize) {
         let name = &w.fighters[fi].name;
-        let wg = self.weapon_of(w, fi).cloned();
+        let kick = self.is_kick(w, fi);
+        let wg = self.attack_weapon(w, fi).cloned();
         let mut posed = self.posed.borrow_mut();
         let Some(p) = posed.get_mut(name) else { return };
-        let (cs, ce) = match wg.as_ref().and_then(|g| self.geo.weapon_world(p, g).map(|x| (x, g))) {
+        let (cs, ce) = if kick {
+            (self.geo.character_socket_world(p, "KickTracerStart"), self.geo.character_socket_world(p, "KickTracerEnd"))
+        } else { match wg.as_ref().and_then(|g| self.geo.weapon_world(p, g).map(|x| (x, g))) {
             // GetTrace_Implementation rva=0x1629520: the Second* sockets while bIsUsingAlternateMode; a missing socket
             // gives the component's own location (USkinnedMeshComponent::GetSocketLocation fallback: engine
             // behaviour, not disassembled)
@@ -176,19 +201,14 @@ impl TraceHost for SimTrace {
                 (wx.apply(s.unwrap_or_default()), wx.apply(e.unwrap_or_default()))
             }
             None => (FVector::ZERO, FVector::ZERO),
-        };
+        }};
+        let additional = kick.then(|| (self.geo.character_socket_world(p, "AdditionalKickTracerStart"), self.geo.character_socket_world(p, "AdditionalKickTracerEnd")));
+        if let Some((start, end)) = additional {
+            let t = p.additional_tracer.get_or_insert_with(UeTracer::default);
+            update_tracer(t, start, end);
+        } else { p.additional_tracer = None; }
         let t = &mut p.tracer;
-        t.prev_start = t.cur_start;
-        t.prev_end = t.cur_end;
-        t.cur_start = cs;
-        t.cur_end = ce;
-        let was = t.invalidated;
-        t.prev_valid = t.cur_valid;
-        if was {
-            t.invalidated = false;
-        }
-        t.cur_valid = !was;
-        t.last_observed_direction = ue_safe_normal((t.cur_start - t.prev_start) + (t.cur_end - t.prev_end));
+        update_tracer(t, cs, ce);
     }
 
     /// AMordhauWeapon::OnAttackStarted_Implementation rva=0x162eb40: ResetTracers (vcall +0x7d8), then
@@ -196,14 +216,16 @@ impl TraceHost for SimTrace {
     /// (Second* in alternate mode) and D = E - S: centre = S + D * 0.5 + ClashNormal * 10 * !bIsCentered
     /// - normalize(D) * 15, SetCapsuleSize(CapsuleRadius, |D| * 0.5 + 15); the relative rotation is kept (template:
     /// zero, so the capsule axis is the mesh Z). ClashNormal is SecondClashNormal in alternate mode (SwitchMode
-    /// rva=0x1640a00 swaps them). UNCONFIRMED: UAttackMotion::OverrideTrace (used first when it returns true) is not
-    /// modelled.
+    /// rva=0x1640a00 swaps them). Kick uses its character socket overrides and virtual weapon identity.
     fn reset(&self, w: &World, fi: usize) {
-        let wg = self.weapon_of(w, fi).cloned();
+        let kick = self.is_kick(w, fi);
+        let wg = self.attack_weapon(w, fi).cloned();
         let mv = w.cur_m(fi).and_then(|m| m.attack()).map(|a| a.mv).unwrap_or(0);
         let alt = w.fighters[fi].alternate_mode;
         if let Some(p) = self.posed.borrow_mut().get_mut(&w.fighters[fi].name) {
             p.tracer.invalidated = true;
+            if kick { p.additional_tracer.get_or_insert_with(UeTracer::default).invalidated = true; }
+            else { p.additional_tracer = None; }
             p.clash = wg.and_then(|g| {
                 let (s, e) = if alt { (g.second_trace_start, g.second_trace_end) } else { (g.trace_start, g.trace_end) };
                 let (s, e) = (s?, e?);
@@ -245,13 +267,8 @@ impl SimTrace {
             return TraceSample { segments: out, cur_start: t.cur_start, cur_end: t.cur_end, blocking: None, last_dir: t.last_observed_direction };
         }
         let g = &self.geo;
-        let dir_c = ue_safe_normal(t.cur_start - t.cur_end);
-        let dir_p = ue_safe_normal(t.prev_start - t.prev_end);
-        let len = (t.cur_end - t.cur_start).length();
-        let n = cvtss2si((len * g.count_scale + g.round_bias) as f64) >> 1;
         let mv = w.cur_m(fi).and_then(|m| m.attack()).map(|a| a.mv).unwrap_or(0);
-        let extra = self.weapon_of(w, fi).is_some_and(|weapon| weapon.extra_environment_tracers) && !matches!(mv, 4 | 5);
-        let mut i = n as f32 + if extra { 4.0 } else { 0.0 };
+        let extra = self.attack_weapon(w, fi).is_some_and(|weapon| weapon.extra_environment_tracers) && !self.is_kick(w, fi) && !matches!(mv, 4 | 5);
         let query = self.world_static.borrow().clone();
         let mut blocking = None;
         // every other character's body shapes in world space, once per call
@@ -291,10 +308,19 @@ impl SimTrace {
             let (Some((rel, half)), Some(wx)) = (lg.block_box, g.weapon_world(p, lg)) else { continue };
             shields.push((vi, FTransform::new(wx.rot, wx.apply(rel)), crate::physics::Shape::Box { half }));
         }
+        // SampleTracers 0x163c430: primary sweeps first, then additional without hand/environment extras.
+        let mut passes = vec![(&t, extra)];
+        if let Some(additional) = me.additional_tracer.as_ref().filter(|a| a.cur_valid && a.prev_valid) { passes.push((additional, false)); }
+        for (tracer, extra) in passes {
+        let dir_c = ue_safe_normal(tracer.cur_start - tracer.cur_end);
+        let dir_p = ue_safe_normal(tracer.prev_start - tracer.prev_end);
+        let len = (tracer.cur_end - tracer.cur_start).length();
+        let n = cvtss2si((len * g.count_scale + g.round_bias) as f64) >> 1;
+        let mut i = n as f32 + if extra { 4.0 } else { 0.0 };
         while i >= 0.0 {
             let o = i * g.spacing_cm;
-            let a = t.prev_end + dir_p.scale(o as f64);
-            let b = t.cur_end + dir_c.scale(o as f64);
+            let a = tracer.prev_end + dir_p.scale(o as f64);
+            let b = tracer.cur_end + dir_c.scale(o as f64);
             let hand_trace = i > n as f32;
             if blocking.is_none() {
                 if let Some(hit) = query.as_ref().and_then(|query| query(a, b)) { blocking = Some((out.len(), hit)); }
@@ -340,8 +366,18 @@ impl SimTrace {
             out.push(hits);
             i += g.step;
         }
+        }
         TraceSample { segments: out, cur_start: t.cur_start, cur_end: t.cur_end, blocking, last_dir: t.last_observed_direction }
     }
+}
+
+fn update_tracer(t: &mut UeTracer, start: FVector, end: FVector) {
+    t.prev_start = t.cur_start; t.prev_end = t.cur_end;
+    t.cur_start = start; t.cur_end = end;
+    t.prev_valid = t.cur_valid;
+    t.cur_valid = !t.invalidated;
+    t.invalidated = false;
+    t.last_observed_direction = ue_safe_normal((t.cur_start - t.prev_start) + (t.cur_end - t.prev_end));
 }
 
 #[cfg(test)]
@@ -366,7 +402,7 @@ mod world_contact_tests {
         let geo = Rc::new(Geometry {
             shapes:vec![BodyShape { bone:"body".into(),xf:FTransform::IDENTITY,shape:crate::physics::Shape::Box { half:FVector::new(1.,1.,1.) } }],
             shape_bones:vec![Some(0)],skeleton:Skeleton::from_parts(vec!["body".into(),"RightWeapon".into()],vec![-1,0],vec![FTransform::IDENTITY;2]),
-            mesh_xf:FTransform::IDENTITY,block_collider_rel:FVector::ZERO,block_collider_extent:FVector::ZERO,
+            mesh_xf:FTransform::IDENTITY,character_sockets:HashMap::new(),block_collider_rel:FVector::ZERO,block_collider_extent:FVector::ZERO,
             block_collider_offsets:[mordhau_core::combat::geometry::ScaledXf {rot:mordhau_core::ue::FQuat::IDENTITY,loc:FVector::ZERO,scale:FVector::new(1.,1.,1.)};3],weapons,grip_pitch_right:0.,grip_pitch_left:0.,
             count_scale:0.26666668,round_bias:0.5,spacing_cm:7.5,step:-1.,
         });
@@ -427,5 +463,29 @@ mod world_contact_tests {
         let sample=trace.sample_ex(&world,0);
         assert!(sample.segments.is_empty() && sample.blocking.is_none());
         assert_eq!(*calls.borrow(),0);assert!(trace.sampled.borrow().is_empty());
+    }
+
+    #[test]
+    fn additional_sweep_reaches_body_without_environment_filter() {
+        let (world, trace) = fixture();
+        trace.posed.borrow_mut().get_mut("attacker").unwrap().additional_tracer = Some(UeTracer {
+            prev_start:FVector::new(45.,0.,0.),prev_end:FVector::new(45.,0.,0.),
+            cur_start:FVector::new(45.,10.,0.),cur_end:FVector::new(45.,10.,0.),cur_valid:true,prev_valid:true,..Default::default()
+        });
+        let sample = trace.sample_ex(&world, 0);
+        assert_eq!(sample.segments.len(), 8);
+        assert!(sample.segments[7].iter().any(|h| matches!(h.comp, HitComp::Body(_))));
+        assert!(!trace.sampled.borrow()[7].environment_only);
+    }
+
+    #[test]
+    fn character_socket_uses_animated_bone_not_held_weapon() {
+        let (_, trace) = fixture();
+        let mut geo = Rc::try_unwrap(trace.geo).ok().unwrap();
+        geo.character_sockets.insert("KickTracerEnd".into(), (0, FTransform::new(mordhau_core::ue::FQuat::IDENTITY,FVector::new(2.,3.,4.))));
+        let mut p = Posed { actor:FTransform::new(mordhau_core::ue::FQuat::IDENTITY,FVector::new(100.,0.,0.)),bones:vec![FTransform::new(mordhau_core::ue::FQuat::IDENTITY,FVector::new(10.,0.,0.))],..Default::default() };
+        assert_eq!(geo.character_socket_world(&p,"KickTracerEnd"),FVector::new(112.,3.,4.));
+        p.bones[0].loc.x = 20.;
+        assert_eq!(geo.character_socket_world(&p,"KickTracerEnd"),FVector::new(122.,3.,4.));
     }
 }
