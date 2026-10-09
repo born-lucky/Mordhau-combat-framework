@@ -60,4 +60,61 @@ class Tests(unittest.TestCase):
   prefix=bytes.fromhex('0f100d');code=prefix+struct.pack('<i',0x2000-0x1000-len(prefix)-4)+bytes.fromhex('f30f10c10f1101c3')
   r=l.Replay(PE(code,bytes(range(16))),[proc('FUnknownLanes',0x1000,len(code))],16).apply(0x1000)
   self.assertEqual(r['bytes'],bytes(16));self.assertTrue(any('Unknown object store' in x['reason'] for x in r['unsupported']))
+ def test_overlapping_stack_scalar_write_invalidates_old_vector(self):
+  # Spill all16bytes, overwrite its second lane, then reload16. The exact-sized
+  # stack cache must refuse that wider load rather than reproduce stale bytes.
+  prefix=bytes.fromhex('0f1005');code=prefix+struct.pack('<i',0x2000-0x1000-len(prefix)-4)
+  code+=bytes.fromhex('0f114424e0c74424e4123456780f104c24e00f1109c3')
+  r=l.Replay(PE(code,bytes(range(16))),[proc('FStackOverlap',0x1000,len(code))],16).apply(0x1000)
+  self.assertEqual(r['bytes'],bytes(16))
+  self.assertTrue(any('Unknown object store' in x['reason'] for x in r['unsupported']))
+ def test_packed_object_load_retains_actual_byte_lanes(self):
+  # Four object words →MOVUPS→SHUFPS→object. Expected words are independent.
+  code=bytes.fromhex('c70101000000c7410402000000c7410803000000c7410c040000000f10010fc6c04e0f114110c3')
+  r=l.Replay(PE(code),[proc('FObjectLanes',0x1000,len(code))],32).apply(0x1000)
+  self.assertEqual(struct.unpack('<8I',r['bytes']),(1,2,3,4,3,4,1,2))
+  self.assertEqual(r['unsupported'],[])
+ def test_movsd_register_preserves_destination_high_lanes(self):
+  data=struct.pack('<8I',1,2,3,4,11,12,13,14);code=bytearray()
+  for prefix,rva in [(bytes.fromhex('0f1005'),0x2000),(bytes.fromhex('0f100d'),0x2010)]:
+   address=0x1000+len(code);code.extend(prefix+struct.pack('<i',rva-address-len(prefix)-4))
+  code.extend(bytes.fromhex('f20f10c10f1101c3'))
+  r=l.Replay(PE(bytes(code),data),[proc('FMovsdRegister',0x1000,len(code))],16).apply(0x1000)
+  self.assertEqual(struct.unpack('<4I',r['bytes']),(11,12,3,4));self.assertEqual(r['unsupported'],[])
+ def test_known_partial_upper_prefix_survives_scalar_register_move(self):
+  data=struct.pack('<8I',1,2,3,4,11,12,13,14);code=bytearray()
+  for prefix,rva in [(bytes.fromhex('0f100d'),0x2000),(bytes.fromhex('0f1015'),0x2010)]:
+   address=0x1000+len(code);code.extend(prefix+struct.pack('<i',rva-address-len(prefix)-4))
+  # First MOVSD has an unknown destination: only low8 known. MOVSS must
+  # preserve its known second lane, while the remaining high8 stay unknown.
+  code.extend(bytes.fromhex('f20f10c1f30f10c2660fd601c3'))
+  r=l.Replay(PE(bytes(code),data),[proc('FPartialPrefix',0x1000,len(code))],8).apply(0x1000)
+  self.assertEqual(struct.unpack('<2I',r['bytes']),(11,2));self.assertEqual(r['unsupported'],[])
+ def test_packed_bitwise_masks_use_exact_bytes(self):
+  data=struct.pack('<8I',0xabcdef01,0x12345678,0x7fffffff,0x80000000,0xff00ff00,0x00ff00ff,0x80000000,0x00000001)
+  for opcode,expected in [('0f54c1',(0xab00ef00,0x00340078,0,0)),('0f56c1',(0xffcdff01,0x12ff56ff,0xffffffff,0x80000001)),('0f57c1',(0x54cd1001,0x12cb5687,0xffffffff,0x80000001))]:
+   code=bytearray()
+   for prefix,rva in [(bytes.fromhex('0f1005'),0x2000),(bytes.fromhex('0f100d'),0x2010)]:
+    address=0x1000+len(code);code.extend(prefix+struct.pack('<i',rva-address-len(prefix)-4))
+   code.extend(bytes.fromhex(opcode+'0f1101c3'))
+   r=l.Replay(PE(bytes(code),data),[proc('FBitwise',0x1000,len(code))],16).apply(0x1000)
+   self.assertEqual(struct.unpack('<4I',r['bytes']),expected);self.assertEqual(r['unsupported'],[])
+ def partial_source(self):
+  data=struct.pack('<8I',1,2,3,4,11,12,13,14);code=bytearray()
+  for prefix,rva in [(bytes.fromhex('0f1005'),0x2000),(bytes.fromhex('0f100d'),0x2010)]:
+   address=0x1000+len(code);code.extend(prefix+struct.pack('<i',rva-address-len(prefix)-4))
+  code.extend(bytes.fromhex('f30f10d1')) # XMM2 unknown high12; only source low4=[11] known.
+  return code,data
+ def test_partial_source_movsd_and_movq_do_not_shift_upper_into_gap(self):
+  for operation in ['f20f10c2','f30f7ec2']:
+   code,data=self.partial_source();code.extend(bytes.fromhex(operation+'660fd601c3'))
+   r=l.Replay(PE(bytes(code),data),[proc('FPartialSource',0x1000,len(code))],8).apply(0x1000)
+   self.assertEqual(r['bytes'],bytes(8))
+   self.assertTrue(any('Unknown object store' in x['reason'] for x in r['unsupported']))
+ def test_partial_source_unpack_knows_only_two_valid_output_lanes(self):
+  code,data=self.partial_source()
+  code.extend(bytes.fromhex('f20f10c20f14c10f1101660fd64110c3'))
+  r=l.Replay(PE(bytes(code),data),[proc('FPartialSourceUnpack',0x1000,len(code))],24).apply(0x1000)
+  self.assertEqual(struct.unpack('<6I',r['bytes']),(0,0,0,0,11,11))
+  self.assertTrue(any('Unknown object store' in x['reason'] for x in r['unsupported']))
 if __name__=='__main__':unittest.main()

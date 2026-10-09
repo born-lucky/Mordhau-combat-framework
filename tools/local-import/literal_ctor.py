@@ -60,6 +60,13 @@ class Replay:
         self.active.append(rva)
         regs={'rcx':Pointer('object',at),'rsp':Pointer('stack',0)};stack={}
         self.calls.append({'name':proc['name'],'aliases':proc['aliases'],'rva':hex(rva),'object_offset':at})
+        def stack_write(offset,size,value):
+            # An overlapping partial write invalidates the old wider value; it cannot
+            # leave stale vector lanes or object aliases available to a later load.
+            for old_offset,old_size in list(stack):
+                if offset<old_offset+old_size and old_offset<offset+size:
+                    del stack[(old_offset,old_size)]
+            stack[(offset,size)]=value
         def address(ins,operand):
             m=operand.mem
             if m.base==self.op.X86_REG_RIP:return Pointer('data',ins.address+ins.size+m.disp-self.pe.base)
@@ -98,6 +105,8 @@ class Replay:
             if operand.type==self.op.X86_OP_REG:
                 key=register(self.cs,operand.reg)
                 if isinstance(value,Pointer) and size<8:value=None
+                if isinstance(value,int) and key.startswith('xmm'):
+                    value=(value&((1<<(size*8))-1)).to_bytes(size,'little')
                 if isinstance(value,bytes) and not key.startswith('xmm'):value=int.from_bytes(value,'little')
                 if isinstance(value,int):
                     value&=(1<<(size*8))-1
@@ -112,7 +121,7 @@ class Replay:
             if operand.type!=self.op.X86_OP_MEM:return
             dest=address(ins,operand)
             if not isinstance(dest,Pointer):self.issue(ins,'Unknown store destination');return
-            if dest.kind=='stack':stack[(dest.offset,size)]=value;return
+            if dest.kind=='stack':stack_write(dest.offset,size,value);return
             if dest.kind=='array':
                 # Array index is appended lexically like NativeCtor.gd; only scalar literal writes qualify.
                 if isinstance(value,int) and size==4:
@@ -140,10 +149,14 @@ class Replay:
                         if isinstance(value,int):value=(value&((1<<(count*8))-1)).to_bytes(count,'little')
                         if isinstance(value,bytes):
                             value=value[:count]
-                            if op[1].type==self.op.X86_OP_MEM or name in ('movd','movq'):value+=bytes(16-count)
-                            else:
-                                previous=regs.get(register(self.cs,op[0].reg))
-                                if isinstance(previous,bytes) and len(previous)>=16:value+=previous[count:16]
+                            # A short source prefix has an unknown gap up to count.
+                            # Appending the upper lanes there would shift them into
+                            # that gap and invent lower scalar bits.
+                            if len(value)>=count:
+                                if op[1].type==self.op.X86_OP_MEM or name in ('movd','movq'):value+=bytes(16-count)
+                                else:
+                                    previous=regs.get(register(self.cs,op[0].reg))
+                                    if isinstance(previous,bytes) and len(previous)>=count:value+=previous[count:16]
                     write(ins,op[0],value)
                 elif name in ('movsx','movsxd','movzx') and len(op)==2:
                     value=read(ins,op[1])
@@ -183,7 +196,7 @@ class Replay:
                         value={'add':lambda:a+b,'sub':lambda:a-b,'and':lambda:a&b,'or':lambda:a|b,'xor':lambda:a^b,'shl':lambda:a<<b,'shr':lambda:a>>b,'sar':lambda:((a^(1<<(op[0].size*8-1)))-(1<<(op[0].size*8-1)))>>b}[name]()
                     write(ins,op[0],value)
                 elif name=='push' and len(op)==1:
-                    sp=regs.get('rsp');regs['rsp']=Pointer('stack',sp.offset-8);stack[(sp.offset-8,8)]=read(ins,op[0])
+                    sp=regs.get('rsp');regs['rsp']=Pointer('stack',sp.offset-8);stack_write(sp.offset-8,8,read(ins,op[0]))
                 elif name=='pop' and len(op)==1:
                     sp=regs.get('rsp');write(ins,op[0],stack.get((sp.offset,8)));regs['rsp']=Pointer('stack',sp.offset+8)
                 elif name=='call':
