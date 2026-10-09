@@ -211,6 +211,12 @@ impl RuntimeInputs {
         }
         for name in MOTION_HEADERS { required(&format!("extract/native/types/{name}.h"))?; }
         for file in ["shadow_capsules.json", "state/physics/mh_physx.dll"] { required(file)?; }
+        let kismet_path = required("data_gen/mode/mode_kismet.json")?;
+        let kismet = read_json(&kismet_path)?;
+        if !kismet.as_object().is_some_and(|o| !o.is_empty())
+            || kismet.get("sb_wait_decay").and_then(|v| v.get("value")).is_none() {
+            return Err("Local game-mode bytecode cache is incomplete; run setup again".into());
+        }
         let extract = directory(&local_data.join("extract"), "Local original import directory")?;
         Ok(Self { install, local_data, spec, extract })
     }
@@ -223,6 +229,7 @@ impl RuntimeInputs {
         std::env::set_var("MORDHAU_SPEC_DIR", &self.spec);
         std::env::set_var("MORDHAU_EXTRACT", &self.extract);
         std::env::set_var("MH_SHADER_DIR", self.local_data.join("data_gen/shaders/particles"));
+        std::env::set_var("MH_KISMET", self.local_data.join("data_gen/mode/mode_kismet.json"));
     }
 }
 
