@@ -390,9 +390,12 @@ fn state_json(world: &mut World) -> serde_json::Value {
         "profile_name": p.profile.as_ref().and_then(|j| j.pointer("/Name/SourceString").cloned())}));
     let memwatch = world.get_resource::<crate::memwatch::MemWatch>().map(|r| serde_json::to_value(r).unwrap_or_default());
     let sc = world.resource::<Script>();
-    json!({"clocks": clocks, "memwatch": memwatch, "armory": armory, "armory_preview": armory_preview, "frame": sc.frame, "secs": sc.started.elapsed().as_secs_f32(), "mode": sc.mode, "counts": c, "camera": cam, "camera1p_probe": probe,
-           "hlod": {"proxies_shown": hl_shown, "meshes_hidden_by_hlod": hl_hidden}, "look": look, "pak_body": pak_body, "weapons": weapons, "bridge": bridge, "fx": fx, "fx_diagnostics":fx_diagnostics,"presentation":presentation,"audio": audio, "hud": ui, "ui_focus": ui_focus, "sim_level": sim_level,
-           "spec_missing": spec_missing, "player": player, "cam_mode": cam_mode, "rig": rig, "profiles": profiles, "menu": menu, "backdrop": backdrop, "menu_ui": menu_ui, "gameworld": gameworld, "motion": motion, "trails": trails, "smear": smear, "weapon_blood": weapon_blood, "shakes": shakes, "rand_seed": seed, "step_per_frame": step_mode, "level": level, "sim": sim, "development": dev, "tracers": tracers})
+    let mut state = json!({"clocks": clocks, "memwatch": memwatch, "armory": armory, "armory_preview": armory_preview, "frame": sc.frame, "secs": sc.started.elapsed().as_secs_f32(), "mode": sc.mode, "counts": c, "camera": cam, "camera1p_probe": probe,
+           "hlod": {"proxies_shown": hl_shown, "meshes_hidden_by_hlod": hl_hidden}, "look": look, "pak_body": pak_body, "weapons": weapons, "bridge": bridge, "fx": fx, "audio": audio, "hud": ui, "ui_focus": ui_focus, "sim_level": sim_level,
+           "spec_missing": spec_missing, "player": player, "cam_mode": cam_mode, "rig": rig, "profiles": profiles, "menu": menu, "backdrop": backdrop, "menu_ui": menu_ui, "gameworld": gameworld, "motion": motion, "trails": trails, "smear": smear, "weapon_blood": weapon_blood, "shakes": shakes, "rand_seed": seed, "step_per_frame": step_mode, "level": level, "sim": sim, "development": dev, "tracers": tracers});
+    state["fx_diagnostics"] = fx_diagnostics.into();
+    state["presentation"] = presentation.into();
+    state
 }
 
 fn write(path: &std::path::Path, s: &str) {

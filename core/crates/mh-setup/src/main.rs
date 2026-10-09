@@ -57,18 +57,22 @@ fn verify(game: Option<&Path>) -> Result<mh_install::Install,String> {
 }
 
 fn check(game: Option<&Path>, root: &Path) -> Value {
-    match verify(game) {
+    match runtime_files(game) {
         Err(e) => json!({"installed":false,"ready":false,"error":e}),
         Ok(i) => {
             let cache = default_cache(&i);
             let inputs = match &cache { Ok(p) => mh_install::RuntimeInputs::verify_local(i.clone(),p), Err(e) => Err(e.clone()) };
             let executable = runtime(root);
             json!({"installed":true,"ready":inputs.is_ok() && executable.is_some(),
-                "game_dir":i.root(),"exe_sha1":i.exe_sha1(),"cache":cache.ok(),
+                "game_dir":i.root(),"supported_import_exe_sha1":i.exe_sha1(),"cache":cache.ok(),
                 "local_data_ready":inputs.is_ok(),"runtime_present":executable.is_some(),
                 "error":inputs.err().or_else(|| if executable.is_none() { Some("The playable framework runtime has not been packaged yet".into()) } else {None})})
         }
     }
+}
+
+fn runtime_files(game: Option<&Path>) -> Result<mh_install::Install,String> {
+    match game { Some(p) => mh_install::Install::runtime_files(p), None => mh_install::Install::discover_runtime() }
 }
 
 fn prepare(game: Option<&Path>, root: &Path) -> Result<Value,String> {
@@ -87,7 +91,7 @@ fn prepare(game: Option<&Path>, root: &Path) -> Result<Value,String> {
 }
 
 fn launch(game: Option<&Path>, root: &Path) -> Result<Value,String> {
-    let i=verify(game)?;
+    let i=runtime_files(game)?;
     let cache=default_cache(&i)?;
     let data=mh_install::RuntimeInputs::verify_local(i,&cache)?;
     let exe=runtime(root).ok_or("Playable runtime is not available")?;

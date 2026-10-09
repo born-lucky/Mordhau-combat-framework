@@ -5,7 +5,7 @@
 //! Original records are not compiled into the library. Applications load locally
 //! generated records and read the user's installed game through the data layer.
 //!
-//! The provided Windows setup and Bevy application enforce the original-install gate.
+//! Setup verifies the original import inputs; launch requires prepared local data and runtime files.
 //! A library interface is not DRM or proof of game ownership.
 pub use mh_host as host;
 pub use mh_install as install;

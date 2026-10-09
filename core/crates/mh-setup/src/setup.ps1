@@ -148,7 +148,7 @@ $timer.Add_Tick({
   if ($result.launch_requested) {
    $controls.Activity.Text = 'Launch requested. The game window is starting; gameplay readiness has not been confirmed.'
   } else {
-   $controls.InstallState.Text = if ($result.installed) { 'Supported installation verified' } else { 'Installation not verified' }
+   $controls.InstallState.Text = if ($result.installed) { 'Local runtime files found' } else { 'Required runtime files unavailable' }
    $controls.InstallState.Foreground = if ($result.installed) { [Windows.Media.BrushConverter]::new().ConvertFrom('#92C5B5') } else { [Windows.Media.BrushConverter]::new().ConvertFrom('#D8A584') }
    $controls.DataState.Text = if ($result.local_data_ready) { 'Local data is ready' } else { 'Local preparation is incomplete' }
    $controls.LaunchState.Text = if ($result.ready) { 'Ready to launch.' } else { 'Launch remains locked until setup is complete.' }

@@ -55,8 +55,8 @@ Matching original EXE/PDB files are currently needed for the native import step.
 They identify the supported layout, not account ownership. An EXE check on every
 launch is not a design requirement. The current runtime still reads original paks
 and PhysX libraries locally; a self-contained cache-only sandbox is future work.
-The staging runtime's older launch preflight has not yet been migrated to that
-final setup contract.
+Launch checks the required local cache, paks, and libraries. The EXE is checked
+during import and is not required again on every launch.
 
 ## Thank you, Triternion
 

@@ -95,6 +95,24 @@ impl Install {
         Self::verify(&path)
     }
 
+    /// Launch consumes a prepared cache plus local packages/libraries. The EXE is
+    /// an import input, not an ownership token that must be re-read at every launch.
+    /// exe_sha1 here identifies the supported import format, not an observed file.
+    pub fn runtime_files(root: &Path) -> Result<Self> {
+        let root = directory(root, "Local Mordhau runtime files")?;
+        let (pak, physics_dlls) = runtime_payloads(&root)?;
+        Ok(Self { exe: root.join(EXE), exe_sha1: EXE_SHA1.into(), root, pak, physics_dlls })
+    }
+
+    pub fn discover_runtime() -> Result<Self> {
+        let root = match std::env::var_os("MORDHAU_DIR") {
+            Some(p) if p.is_empty() => return Err("MORDHAU_DIR is empty".into()),
+            Some(p) => PathBuf::from(p),
+            None => PathBuf::from(DEFAULT_STEAM_INSTALL),
+        };
+        Self::runtime_files(&root)
+    }
+
     pub fn verify(root: &Path) -> Result<Self> { verify_install(root, EXE_SHA1) }
 }
 
@@ -108,6 +126,11 @@ fn verify_install(root: &Path, expected_sha1: &str) -> Result<Install> {
     if hash != expected_sha1 {
         return Err(format!("Unsupported original EXE: SHA1 {hash}; expected {expected_sha1} (build {BUILD})"));
     }
+    let (pak, physics_dlls) = runtime_payloads(&root)?;
+    Ok(Install { root, exe, exe_sha1: hash, pak, physics_dlls })
+}
+
+fn runtime_payloads(root: &Path) -> Result<(PathBuf, Vec<PathBuf>)> {
     for marker in ["version.txt", "installedversion", "installedversion.txt"] {
         if root.join(marker).exists() {
             let file = local_file(&root, marker)?;
@@ -122,7 +145,7 @@ fn verify_install(root: &Path, expected_sha1: &str) -> Result<Install> {
         amd64_pe(&p)?;
         physics_dlls.push(p);
     }
-    Ok(Install { root, exe, exe_sha1: hash, pak, physics_dlls })
+    Ok((pak, physics_dlls))
 }
 
 #[derive(Debug, Clone)]
@@ -135,7 +158,7 @@ pub struct RuntimeInputs {
 
 impl RuntimeInputs {
     pub fn discover() -> Result<Self> {
-        let install = Install::discover()?;
+        let install = Install::discover_runtime()?;
         Self::local_from_environment(install)
     }
 
@@ -150,9 +173,9 @@ impl RuntimeInputs {
     }
 
     pub fn verify_local(install: Install, local: &Path) -> Result<Self> {
-        let local_data = directory(local, "Local import cache (private staging: importer not implemented; release blocked)")?;
+        let local_data = directory(local, "Local import cache (complete setup is required)")?;
         let required = |name: &str| local_file(&local_data, name)
-            .map_err(|e| format!("Private v1 release blocked: local importer is not implemented. {e}"));
+            .map_err(|e| format!("Local preparation is incomplete. {e}"));
         let spec = directory(&local_data.join("data_gen/spec"), "Local generated spec matrix")?;
         let index_path = required("data_gen/spec/index.json")?;
         let read_json = |file: &Path| -> Result<serde_json::Value> {
@@ -232,6 +255,16 @@ mod tests {
     #[test] fn rejects_missing_install_and_fake_original_hash() {
         let t = Temp::new(); assert!(Install::verify(&t.0).unwrap_err().contains("Missing required"));
         let (t, _) = install(); assert!(Install::verify(&t.0).unwrap_err().contains("Unsupported original EXE"));
+    }
+    #[test] fn prepared_runtime_does_not_require_exe_but_import_still_does() {
+        let (t, _) = install();
+        fs::remove_file(t.0.join(EXE)).unwrap();
+        let files = Install::runtime_files(&t.0).unwrap();
+        assert_eq!(files.exe_sha1(), EXE_SHA1);
+        assert_eq!(files.physics_dlls().len(), 5);
+        assert!(Install::verify(&t.0).unwrap_err().contains("Shipping.exe"));
+        fs::remove_file(t.0.join(PAK)).unwrap();
+        assert!(Install::runtime_files(&t.0).unwrap_err().contains("pakchunk0"));
     }
     #[test] fn synthetic_policy_fixture_checks_complete_install_and_missing_files() {
         let (t, hash) = install(); let i = verify_install(&t.0, &hash).unwrap(); assert_eq!(i.physics_dlls.len(), 5);

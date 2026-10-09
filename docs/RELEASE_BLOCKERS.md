@@ -11,6 +11,9 @@ Release state: BLOCKED. The repository is private. There is no public game relea
    Do not ship the old 2016 extension binary or relabel its license.
 3. Complete source/dependency provenance and binary packaging review. The authored
    rewrite WGSL files have been reviewed as code, not copied shader payloads.
+   Particle shaders translated from original cooked materials are a separate local
+   import dependency. Implement and verify their generation in the user's cache;
+   the developer's translated particle cache must never be bundled as source.
 4. Verify startup from a clean machine with only a purchased supported installation.
    The setup step must reject unsupported original inputs; launch must reject
    missing/corrupt required cache and runtime inputs. An EXE check on every launch
