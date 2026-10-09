@@ -26,7 +26,7 @@ https://github.com/user-attachments/assets/ef919f7f-22ac-48d4-8a0c-fbd5b017b278
 
 **Combat — parries, weapon hits, alternate grips and death ragdolls**
 
-https://github.com/user-attachments/assets/a2eb7c4a-a8f8-44ac-aaed-628f293ad65d
+Updated combat footage with articulated hands and the corrected blade orientation is being recorded.
 
 Silent gameplay captures from development builds, using custom training figures.
 
