@@ -2541,6 +2541,27 @@ impl FighterAnim {
         tr("upper", &upper);
         tr("layered", &pose);
         let fb_layers = self.ma.montages.slot_layers(spec, &a.slot_full_body, now);
+        // FullBodySlot also blends the Position->Foot virtual-bone tracks. Our skeleton stores real bones only;
+        // carry those targets through the same slot instead of retaining the standing LowerBody targets.
+        // AB graph: Slot_1 (545) precedes TwoBoneIK_7/_8 (465/464), which consume VB Position_*Foot.
+        let slot_feet = self.lower.as_ref().and_then(|l| l.vb_feet).map(|feet| {
+            let position = sk.find("Position").map(|i| sk.to_component(&pose)[i]).unwrap_or_default();
+            let raw: Vec<f64> = fb_layers.iter().map(|l| l.2).collect();
+            let Some((weights, source_weight)) = slot_weights(&raw) else { return feet };
+            let mut targets = (position.inverse().apply(feet.0).scale(source_weight), position.inverse().apply(feet.1).scale(source_weight));
+            for (layer, weight) in fb_layers.iter().zip(weights) {
+                let cs = sk.to_component(&a.sample(sk, &layer.0, layer.1, false));
+                let inv = sk.find("Position").map(|i| cs[i]).unwrap_or_default().inverse();
+                if let (Some(left), Some(right)) = (sk.find("LeftFoot"), sk.find("RightFoot")) {
+                    targets.0 = targets.0 + inv.apply(cs[left].loc).scale(weight);
+                    targets.1 = targets.1 + inv.apply(cs[right].loc).scale(weight);
+                }
+            }
+            // Position is itself blended by the slot; convert the virtual targets back to component space.
+            let slot_pose = Self::slot_blend(sk, a, pose.clone(), &fb_layers);
+            let position = sk.find("Position").map(|i| sk.to_component(&slot_pose)[i]).unwrap_or_default();
+            (position.apply(targets.0), position.apply(targets.1))
+        });
         let pose = Self::slot_blend(sk, a, pose, &fb_layers);
         tr("fb_slot", &pose);
         // UAnimInstance::GetCurveValue of the montage-driven curves (WeaponSlideAmount, SlideCompensationWeight): the
@@ -2647,7 +2668,7 @@ impl FighterAnim {
         // offset about the component origin) - the LowerBody machine's feet (CopyBone 660 / 659 + ModifyBone_31 / _32)
         // yawed the same way. Before this the targets stayed in mesh space and the legs snapped with the camera.
         if self.first_person {
-            if let Some(vb) = self.lower.as_ref().and_then(|l| l.vb_feet) {
+            if let Some(vb) = slot_feet {
                 let yaw = FQuat::from_rotator(0.0, self.proc.lower_rot_offset, 0.0);
                 let vb = (yaw.rotate(vb.0), yaw.rotate(vb.1));
                 let gw = self.air.ground_weight(spec, now) as f32;

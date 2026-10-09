@@ -541,7 +541,7 @@ pub fn player_rig(
     if !pc.third_person {
         // evidence (first-person r1): where the hands / weapon bones sit in the 1P view
         let inv = Transform::from_translation(pos).with_rotation(rot).compute_affine().inverse();
-        st.fp_probe = ["RightHand", "LeftHand", "RightWeapon", "LeftWeapon", "Head", "Spine1", "Spine2", "Position", "RightForeArm", "Hips"]
+        st.fp_probe = ["RightHand", "LeftHand", "RightWeapon", "LeftWeapon", "Head", "Spine1", "Spine2", "Position", "RightForeArm", "Hips", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "LeftFoot"]
             .iter()
             .filter_map(|n| joint(n).map(|g| {
                 let l = inv.transform_point3(g.translation()) * 100.0;
