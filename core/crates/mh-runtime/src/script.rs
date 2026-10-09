@@ -357,7 +357,7 @@ fn state_json(world: &mut World) -> serde_json::Value {
             "camera_fields":flags})
     };
     presentation["authored_visuals"] = crate::custom_visuals::diagnostics(world);
-    let audio = world.get_resource::<mh_audio::AudioLog>().map(|a| json!({"plays": a.rows.len(), "missing": a.missing,
+    let audio = world.get_resource::<mh_audio::AudioLog>().map(|a| json!({"plays": a.rows.len(), "missing": a.missing, "sample_counts": a.sample_counts(),
         "rows": a.rows.iter().rev().take(10).map(|r| r.json()).collect::<Vec<_>>()}));
     let ui = world.get_resource::<mh_ui::HudVitals>().map(|v| json!({"visible": v.visible, "health": v.health, "stamina": v.stamina}));
     // the in-match UI's keyboard focus path and viewport roots (first-person r3: Escape routing)

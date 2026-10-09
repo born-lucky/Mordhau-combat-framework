@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use crate::sim::Sim;
 use crate::input::PlayerControl;
+mod controls;
 
 #[derive(Component)]
 struct LabStatus;
@@ -16,9 +17,8 @@ struct VitalsPanel;
 pub struct LabMenu { pub open: bool }
 
 #[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct LabInput;
-
-/// Independent writable settings. Import local key bindings once without overwriting existing preferences.
+pub stru/// Independent writable settings. Fresh installs use native defaults (including kick on F).
+/// Importing personal vanilla bindings is an explicit action in the controls editor.
 /// Call before Bevy creates threads; neither the game nor the main rewrite's settings are modified.
 pub fn initialize_settings() -> std::io::Result<()> {
     if std::env::var_os("MH_CONFIG_DIR").is_none() {
@@ -27,14 +27,10 @@ pub fn initialize_settings() -> std::io::Result<()> {
                 .join("MordhauCombatFramework/Saved/Config/WindowsClient"));
         }
     }
-    if std::env::var_os("MORDHAU_INPUT_INI").is_some() { return Ok(()); }
-    let Some(base) = std::env::var_os("LOCALAPPDATA") else { return Ok(()) };
-    let source = std::path::PathBuf::from(base).join("Mordhau/Saved/Config/WindowsClient/Input.ini");
-    let target = mh_ui::settings::config_dir().join("Input.ini");
-    if source.is_file() { copy_input_if_missing(&source, &target)?; }
-    Ok(())
+    std::fs::create_dir_all(mh_ui::settings::config_dir())
 }
 
+#[cfg(test)]
 fn copy_input_if_missing(source: &std::path::Path, target: &std::path::Path) -> std::io::Result<()> {
     use std::io::Write;
     if target.exists() { return Ok(()); }
@@ -47,11 +43,15 @@ fn copy_input_if_missing(source: &std::path::Path, target: &std::path::Path) -> 
     }
 }
 
+(e),
+    }
+}
+
 #[derive(Component)]
 struct MenuRoot;
 
 #[derive(Component, Clone, Copy)]
-enum MenuAction { Resume, Perspective, Tools, Quit }
+enum MenuAction { Resume, Perspective, Controls, Tools, Quit }
 
 #[derive(Component, Clone, Copy)]
 enum Vital { Health, Stamina }
@@ -65,7 +65,7 @@ struct VitalLabel(Vital);
 pub struct FrameworkUiPlugin;
 impl Plugin for FrameworkUiPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<LabMenu>()
+        app.add_plugins(controls::ControlsPlugin).init_resource::<LabMenu>()
             .add_systems(Startup, setup)
             .add_systems(Update, menu_input.in_set(LabInput).before(crate::input::player_input))
             .add_systems(Update, update.after(crate::sim::tick_sim_frame))
@@ -102,7 +102,7 @@ fn setup(mut commands: Commands, camera: Res<crate::camera::CamEntity>) {
             .with_children(|right| {
                 right.spawn(label("YOUR SESSION", 14.0, Node::default(), Color::srgb(0.51, 0.70, 0.73)));
                 for (action, title) in [(MenuAction::Resume, "RETURN TO RANGE"), (MenuAction::Perspective, "CHANGE PERSPECTIVE"),
-                    (MenuAction::Tools, "COMBAT TOOLS"), (MenuAction::Quit, "EXIT FRAMEWORK")] {
+                    (MenuAction::Controls, "CONTROLS / BINDINGS"), (MenuAction::Tools, "COMBAT TOOLS"), (MenuAction::Quit, "EXIT FRAMEWORK")] {
                     right.spawn((Button, action,
                         Node { width: Val::Percent(100.0), min_height: Val::Px(58.0), padding: UiRect::all(Val::Px(18.0)), ..default() },
                         BackgroundColor(Color::srgb(0.09, 0.17, 0.21)),
@@ -193,30 +193,34 @@ fn original_hud_visibility(
 
 fn menu_input(
     mut menu: ResMut<LabMenu>, keys: Option<Res<ButtonInput<KeyCode>>>,
-    mut buttons: Query<(&Interaction, &MenuAction, &mut BackgroundColor), With<Button>>,
+    mut buttons: Query<(&Interaction, &MenuAction, &mut BackgroundColor), (With<Button>, Changed<Interaction>)>,
     mut roots: Query<&mut Visibility, With<MenuRoot>>,
     mut player: ResMut<PlayerControl>, mut dev: ResMut<crate::devmenu::DevMenu>,
     mut exit: MessageWriter<bevy::app::AppExit>,
+    mut editor: Option<ResMut<controls::Controls>>,
 ) {
-    // F9's panel owns Escape while it is open. This menu owns it everywhere else.
-    if keys.as_ref().is_some_and(|k| k.just_pressed(KeyCode::Escape)) && !dev.open {
+    // The debug panel and controls editor own Escape while open.
+    let editor_open = editor.as_deref().is_some_and(|c| c.open);
+    if keys.as_ref().is_some_and(|k| k.just_pressed(KeyCode::Escape)) && !dev.open && !editor_open {
         menu.open = !menu.open;
     }
-    if menu.open && keys.as_ref().is_some_and(|k| k.just_pressed(KeyCode::Enter)) { menu.open = false; }
+    if menu.open && !editor_open && keys.as_ref().is_some_and(|k| k.just_pressed(KeyCode::Enter)) { menu.open = false; }
     for (interaction, action, mut color) in &mut buttons {
         *color = BackgroundColor(match interaction {
             Interaction::Hovered | Interaction::Pressed => Color::srgb(0.20, 0.34, 0.38),
             Interaction::None => Color::srgb(0.09, 0.17, 0.21),
         });
-        if !menu.open || *interaction != Interaction::Pressed { continue; }
+        if !menu.open || editor_open || *interaction != Interaction::Pressed { continue; }
         match action {
             MenuAction::Resume => menu.open = false,
             MenuAction::Perspective => { player.third_person = !player.third_person; menu.open = false; }
+            MenuAction::Controls => { if let Some(c) = editor.as_mut() { c.show(); } }
             MenuAction::Tools => { dev.open = true; menu.open = false; }
             MenuAction::Quit => { exit.write(bevy::app::AppExit::Success); }
         }
     }
-    for mut v in &mut roots { *v = if menu.open { Visibility::Inherited } else { Visibility::Hidden }; }
+    let editor_open = editor.as_deref().is_some_and(|c| c.open);
+    for mut v in &mut roots { *v = if menu.open && !editor_open { Visibility::Inherited } else { Visibility::Hidden }; }
 }
 
 fn controls(player: Option<&PlayerControl>) -> String {
@@ -229,7 +233,7 @@ fn controls(player: Option<&PlayerControl>) -> String {
     };
     let bindings: Vec<_> = [("Strike", &["Strike", "Right Strike", "Left Strike"][..]),
         ("Stab", &["Stab", "Right Stab", "Left Stab"][..]), ("Parry", &["Parry"][..]),
-        ("Feint", &["Feint"][..]), ("Grip", &["Weapon Mode / Reload"][..])].into_iter().map(|(label, actions)| {
+        ("Kick", &["Kick"][..]), ("Feint", &["Feint"][..]), ("Grip", &["Weapon Mode / Reload"][..])].into_iter().map(|(label, actions)| {
             let mut keys: Vec<_> = actions.iter().flat_map(|action| player.actions.get(*action)).flatten().map(key).collect();
             keys.sort(); keys.dedup();
             format!("{label}: {}", if keys.is_empty() { "unbound".into() } else { keys.join(" / ") })
