@@ -24,6 +24,8 @@ The CLI also discovers `tools/bin/mh-pak.exe` when no `--pak-tool` is supplied. 
 
 `mode_cache.py` reads the 29 package recipes from the authored generator without executing its source during recipe collection. The source-built pak CLI reads all 58 original `.uasset`/`.uexp` files into a fresh external stage, with input hashes and process/failure logs retained. The generator refuses missing raw inputs, writes to the explicit external output, and skips original UI texture/font extraction. It validates every expected key, finite value and exact original function/statement citation before publishing only `data_gen/mode/mode_kismet.json` locally. The accepted development run generated 150 entries in 6.05 seconds, using 117.75 MiB peak whole-job commit. All values and citations matched the local-only reference, which was read only after generation for comparison. Output byte differences were CRLF normalization and a final newline. This proves the mode dependency, not the remaining full-matrix, particle or physics stages.
 
+A fresh top-level `tools/setup.py --pak-tool ...` integration subsequently generated all three stages from the supported original installation: eight native rows, 13 headers, 41 capsules on 23 bones, and the same 150 mode entries. Every output matched its recorded hash. The process and child tree exited in 13.73 seconds with 376.78 MiB peak whole-job commit under a 1 GiB limit. It intentionally returned exit 2 and `runtime_ready:false`, with the missing matrix, particle and bridge stages listed. This confirms stage orchestration and dependency generation only; no full consumer launch was attempted or established.
+
 The constructor diagnostic command is:
 
 ```
