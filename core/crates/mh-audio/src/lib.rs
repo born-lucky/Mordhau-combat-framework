@@ -20,6 +20,7 @@ pub mod game;
 pub mod mixer;
 pub mod occlusion;
 pub mod reverb;
+pub mod replacements;
 pub mod routing;
 pub mod sources;
 pub mod spatial;
@@ -126,13 +127,15 @@ pub struct LogRow {
     pub looping: bool,
     /// the sound class (empty = default) whose effective volume / pitch are in `volume` / `pitch`
     pub class: String,
+    /// Actual sample origin, independent of the native cue/wave identity used for scheduling.
+    pub sample_source: String,
 }
 
 impl LogRow {
     pub fn json(&self) -> serde_json::Value {
         serde_json::json!({"t": self.t, "cue": self.cue, "wave": self.wave, "delay": self.delay, "distance_m": self.distance_m,
             "volume": self.volume, "gain": self.gain, "out_volume": self.volume * self.gain, "pitch": self.pitch,
-            "doppler": self.doppler, "looping": self.looping, "class": self.class})
+            "doppler": self.doppler, "looping": self.looping, "class": self.class, "sample_source": self.sample_source})
     }
 }
 
@@ -146,6 +149,14 @@ pub struct AudioLog {
     pub stolen: Vec<String>,
     pub missing: Vec<String>,
     pub inexact: Vec<(String, Vec<String>)>,
+}
+
+impl AudioLog {
+    pub fn sample_counts(&self) -> std::collections::BTreeMap<String, usize> {
+        let mut counts = std::collections::BTreeMap::new();
+        for row in &self.rows { *counts.entry(row.sample_source.clone()).or_default() += 1; }
+        counts
+    }
 }
 
 pub struct AudioPlugin;
@@ -442,12 +453,21 @@ pub struct AudioState {
     next_inst: u64,
     /// decoded waves (None = no Ogg payload / undecodable)
     pcm: HashMap<String, Option<Pcm>>,
+    replacements: Option<replacements::Bank>,
     /// playing voices (attenuation / doppler updated every frame)
     pub voices: Vec<VoiceHandle>,
 }
 
 impl AudioState {
     pub fn new(p: &Paks) -> AudioState {
+        let audio_dir = std::env::var_os("MH_AUDIO_REPLACEMENTS").map(std::path::PathBuf::from)
+            .unwrap_or_else(|| mh_ui::settings::config_dir().join("audio"));
+        let replacements = if audio_dir.join("bank.json").exists() {
+            match replacements::Bank::open(&audio_dir) {
+                Ok(bank) => { info!("Framework audio: {} replacement samples predecoded from {}", bank.sample_count(), audio_dir.display()); Some(bank) }
+                Err(e) => { error!("Framework audio bank failed: {e}; originals remain active"); None }
+            }
+        } else { warn!("Framework audio bank missing at {}; originals remain active", audio_dir.display()); None };
         AudioState {
             rd: mh_pak::Reader::new(p.0.clone()),
             src: mh_assets::pak_source::PakSource::new(p.0.clone()),
@@ -460,6 +480,7 @@ impl AudioState {
             groups: HashMap::new(),
             next_inst: 1,
             pcm: HashMap::new(),
+            replacements,
             voices: vec![],
         }
     }
@@ -505,7 +526,7 @@ impl AudioState {
         let waves = self.cue(cue).map(|c| c.waves.clone()).unwrap_or_default();
         let _ = self.routing(cue);
         for w in waves {
-            let _ = self.wave_pcm(&w);
+            let _ = self.cue_pcm(cue, &w);
         }
     }
 
@@ -516,6 +537,17 @@ impl AudioState {
             self.pcm.insert(wave.to_string(), p);
         }
         self.pcm[wave].clone()
+    }
+
+    pub fn cue_pcm(&mut self, cue: &str, wave: &str) -> Option<Pcm> {
+        if let Some((_, _, pcm)) = self.replacements.as_ref().and_then(|bank| bank.sample(cue, wave)) { return Some(pcm); }
+        self.wave_pcm(wave)
+    }
+
+    pub fn sample_source(&self, cue: &str, wave: &str) -> String {
+        self.replacements.as_ref().and_then(|bank| bank.sample(cue, wave))
+            .map(|(role, file, _)| format!("framework:{role}:{file}"))
+            .unwrap_or_else(|| "original".to_owned())
     }
 
     /// the Ogg Vorbis payload of a wave package (for an output backend)
@@ -766,11 +798,11 @@ fn emit(
         p.pitch *= r.pitch;
         let volume = p.volume * ev * cp.volume;
         let pitch = p.pitch * ep * doppler * cp.pitch;
-        log.rows.push(LogRow { t: now, cue: r.cue.clone(), wave: p.wave.clone(), delay: p.delay, distance_m: dist_cm / 100.0, volume, gain, pitch, doppler, looping: p.looping, class: class.clone() });
+        log.rows.push(LogRow { t: now, cue: r.cue.clone(), wave: p.wave.clone(), delay: p.delay, distance_m: dist_cm / 100.0, volume, gain, pitch, doppler, looping: p.looping, class: class.clone(), sample_source: st.sample_source(&r.cue, &p.wave) });
         out.write(AudioStarted { cue: r.cue.clone(), wave: p.wave.clone(), pos: r.pos, volume: volume * gain, pitch, looping: p.looping, loop_count: p.loop_count });
         // the voice: envelope / attenuation / doppler / channel map from the game side (update_voices every frame);
         // looping = forever, a Looping node's count
-        let Some(pcm) = st.wave_pcm(&p.wave) else { continue };
+        let Some(pcm) = st.cue_pcm(&r.cue, &p.wave) else { continue };
         let (map, az) = channel_map(att.as_ref(), pcm.channels, r.pos, &lis);
         let mut zone = zones::SoundZone::default();
         let (zv, lpf) = zone_and_lpf(&mut zone, vols.as_deref(), &amb.0, att.as_ref(), r.pos, cp.lpf, dist_cm, now);

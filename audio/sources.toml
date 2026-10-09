@@ -1,0 +1,63 @@
+# Source-only download recipe. No Mordhau or third-party recordings are stored in Git.
+version = 1
+
+[archives.sword]
+url = "https://opengameart.org/sites/default/files/sword_-_starninjas_1.zip"
+sha256 = "87a1fe1cfeee5f282fe06a7a9c25ab9ebf24b7674fe19171b7f2762dffb628c1"
+author = "StarNinjas"
+license = "CC0-1.0"
+page = "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes"
+
+[archives.clash]
+url = "https://opengameart.org/sites/default/files/sword_clash_-_starninjas_0.zip"
+sha256 = "f363c80ea1627548d336370750651b0d2d092978148ecfb3642717c2efb54b6b"
+author = "StarNinjas"
+license = "CC0-1.0"
+page = "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes"
+
+[archives.apparel]
+url = "https://opengameart.org/sites/default/files/weapons-apparel.zip"
+sha256 = "81cc6317f21b68f8e7f2b23a5a0f5f33c301c39ee41347307eec02201be989e5"
+author = "Vehicle"
+license = "CC0-1.0"
+page = "https://opengameart.org/content/fantasy-weapons-and-apparel-sfx-library"
+
+[archives.impacts]
+url = "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip"
+sha256 = "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8"
+author = "Kenney"
+license = "CC0-1.0"
+page = "https://kenney.nl/assets/impact-sounds"
+
+[archives.voices]
+url = "https://opengameart.org/sites/default/files/yelling%20sounds.zip"
+sha256 = "e9100a4e3b9dcd146993089970dc6097dcf9935fa4683b196040012bad65d67a"
+author = "HaelDB"
+license = "CC0-1.0"
+page = "https://opengameart.org/content/male-gruntyelling-sounds"
+
+[archives.flesh]
+url = "https://opengameart.org/sites/default/files/qubodupImpact.7z"
+sha256 = "98d72b55d6f78a32072439ed4d052fc43fdd80b8b409d18a9bb3150fc2ccd97b"
+author = "Iwan 'qubodup' Gabovitch"
+license = "CC0-1.0"
+page = "https://opengameart.org/content/impact"
+
+[roles]
+swing = ["sword:sword - StarNinjas/sword.*.ogg"]
+parry = ["clash:sword_clash.*.ogg"]
+metal = ["impacts:Audio/impactMetal_medium_*.ogg"]
+stone = ["flesh:qubodupImpact/qubodupImpactStone.ogg"]
+wood = ["impacts:Audio/impactWood_medium_*.ogg"]
+soft = ["impacts:Audio/impactSoft_medium_*.ogg"]
+flesh = ["flesh:qubodupImpact/qubodupImpactMeat01.ogg", "flesh:qubodupImpact/qubodupImpactMeat02.ogg"]
+foley = ["apparel:sfx/sheath-squeeze-*.wav", "apparel:sfx/belt-buckle-*.wav"]
+equip = ["apparel:sfx/knife-unsheathe-*.wav"]
+step_stone = ["impacts:Audio/footstep_concrete_*.ogg"]
+step_grass = ["impacts:Audio/footstep_grass_*.ogg"]
+step_snow = ["impacts:Audio/footstep_snow_*.ogg"]
+step_wood = ["impacts:Audio/footstep_wood_*.ogg"]
+ui = ["impacts:Audio/impactGeneric_light_*.ogg"]
+voice_effort = ["voices:yelling sounds/3grunt3.wav", "voices:yelling sounds/3grunt4.wav", "voices:yelling sounds/3grunt5.wav"]
+voice_pain = ["voices:yelling sounds/3grunt1.wav", "voices:yelling sounds/3grunt2.wav", "voices:yelling sounds/3grunt6.wav"]
+voice_death = ["voices:yelling sounds/3yell9.wav", "voices:yelling sounds/3yell13.wav", "voices:yelling sounds/3yell16.wav"]
