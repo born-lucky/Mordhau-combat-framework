@@ -63,6 +63,8 @@ pub struct FrameInput {
     pub attack: Option<(i64, f64)>,
     pub feint: bool,
     pub parry: Option<i64>,
+    /// Current post-flush owning-controller angling, used when a pending parry retries in LODTick.
+    pub controller_angling_x: Option<f32>,
     pub release_block: bool,
     pub switch_mode: bool,
     pub toggle_mode: bool,

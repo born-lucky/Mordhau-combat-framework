@@ -826,6 +826,8 @@ impl PlayerControl {
         let wants = self.wants_strike || self.wants_stab;
         let (fr, ls) = (self.frame, self.listen_start);
         self.angling.flush(&k, fr, wants, ls);
+        // The press above uses the pre-axis vector. Buffered LODTick retries use this newly flushed vector.
+        fi.controller_angling_x = Some(self.angling.vector(&self.settings).0);
         if wants {
             if after_press && !self.wants_stab {
                 // UseAngleAttackAfterPress (mouse): wait for X input after the press, then Y input or 0.07 s

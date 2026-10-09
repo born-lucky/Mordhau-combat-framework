@@ -77,6 +77,8 @@ pub struct Fighter {
     pub airborne_time: f64,                    // AAdvancedCharacter +0x86c AirborneTime
     pub holding_block: bool,                   // AMordhauCharacter +0xb99 bIsHoldingBlock
     pub wants_block: bool,                     // AMordhauCharacter +0x1029 bWantsBlock
+    /// Host-fed GetAnglingVector().X for an owning player controller; AI/script-only fighters leave None.
+    pub controller_angling_x: Option<f32>,
     pub look_up_value: f64,                    // AAdvancedCharacter +0x520 LookUpValue, degrees
     pub turn_caps: super::turncap::TurnCaps,   // AAdvancedCharacter TurnRateCap / TurnCapRemaining / ... (turncap.rs)
     pub wants_fire: bool,                      // AMordhauCharacter bWantsFire (rangedmotion.rs)
@@ -207,6 +209,7 @@ impl World {
             airborne_time: 0.0,
             holding_block: false,
             wants_block: false,
+            controller_angling_x: None,
             look_up_value: 0.0,
             turn_caps: Default::default(),
             wants_fire: false,
@@ -909,7 +912,13 @@ impl World {
             self.fighters[fi].wants_block = true;
         }
         if self.fighters[fi].wants_block {
-            let ok = self.request_parry(fi, bt::REGULAR, true);
+            // LODTick requests Regular, then UMotionSystemComponent::RequestParry resolves it again from
+            // the owning player's current GetAnglingVector().X (0x1414d1685..0x1414d16b1). Resolving only
+            // the initial BlockPressed in the host lost left-side selection whenever that press was buffered.
+            let side = if self.fighters[fi].controller_angling_x.is_some_and(|x| x < 0.0) {
+                bt::ALT_REGULAR
+            } else { bt::REGULAR };
+            let ok = self.request_parry(fi, side, true);
             self.fighters[fi].wants_block = !ok;
         }
         if let Some(c) = self.fighters[fi].motion {

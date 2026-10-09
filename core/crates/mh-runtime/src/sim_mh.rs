@@ -534,6 +534,7 @@ impl SimBackend for MhSim {
                     attack: i.attack,
                     feint: i.feint,
                     parry: i.parry,
+                    controller_angling_x: i.controller_angling_x,
                     release_block: i.release_block,
                     switch_mode: i.switch_mode,
                     toggle_mode: i.toggle_mode,

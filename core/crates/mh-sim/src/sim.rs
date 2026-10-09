@@ -60,6 +60,8 @@ pub struct SimInput {
     pub feint: bool,
     /// EBlockType: block pressed
     pub parry: Option<i64>,
+    /// Host-fed GetAnglingVector().X after the player's current input flush. None for AI/script callers.
+    pub controller_angling_x: Option<f32>,
     pub release_block: bool,
     pub switch_mode: bool,
     pub toggle_mode: bool,
@@ -820,6 +822,7 @@ impl Sim {
         let previous_velocity: Vec<_> = self.movers.iter().map(|m| m.velocity).collect();
         let n = self.combat.tick_n + 1;
         for (fi, i) in inputs {
+            self.combat.fighters[*fi].controller_angling_x = i.controller_angling_x;
             let who = self.combat.fighters[*fi].name.clone();
             // the control rotation through AAdvancedCharacter::Turn rva=0x14a8a90's turn cap (mordhau-core turncap.rs:
             // an attack's TurnCaps rate-limit the turn; uncapped otherwise). The yaw change is taken the short way.
