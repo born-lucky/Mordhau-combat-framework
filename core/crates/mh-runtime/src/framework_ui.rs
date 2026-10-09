@@ -40,7 +40,9 @@ fn label(text: &str, size: f32, node: Node, color: Color) -> impl Bundle {
     )
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, camera: Res<crate::camera::CamEntity>) {
+    // Explicit roots also render when the gameplay camera targets an offscreen image.
+    // Bevy's automatic UI camera selection only considers primary-window cameras.
     commands.spawn((
         Node {
             position_type: PositionType::Absolute,
@@ -49,6 +51,7 @@ fn setup(mut commands: Commands) {
             ..default()
         },
         BackgroundColor(Color::srgba(0.078, 0.165, 0.224, 0.85)),
+        UiTargetCamera(camera.0),
     ));
     commands.spawn((
         Node {
@@ -56,15 +59,17 @@ fn setup(mut commands: Commands) {
             width: Val::Px(3.0), height: Val::Px(3.0), ..default()
         },
         BackgroundColor(Color::srgb(0.92, 0.91, 0.86)),
+        UiTargetCamera(camera.0),
     ));
     commands.spawn(label(
         "Mordhau Combat Framework",
         22.0,
         Node { position_type: PositionType::Absolute, top: Val::Px(12.0), left: Val::Px(24.0), ..default() },
         Color::srgb(0.827, 0.737, 0.471),
-    ));
+    )).insert(UiTargetCamera(camera.0));
     commands.spawn((
         LabStatus,
+        UiTargetCamera(camera.0),
         label(
             "Loading combat lab",
             14.0,
@@ -72,7 +77,7 @@ fn setup(mut commands: Commands) {
             Color::srgb(0.655, 0.765, 0.804),
         ),
     ));
-    commands.spawn((ControlLegend, label(
+    commands.spawn((ControlLegend, UiTargetCamera(camera.0), label(
         "Loading saved controls\nTracers: F7    Parry geometry: F8    Combat tools: F9",
         13.0,
         Node { position_type: PositionType::Absolute, bottom: Val::Px(16.0), left: Val::Px(24.0), ..default() },
@@ -80,6 +85,7 @@ fn setup(mut commands: Commands) {
     )));
     commands.spawn((
         VitalsPanel,
+        UiTargetCamera(camera.0),
         Node {
             position_type: PositionType::Absolute, bottom: Val::Px(80.0), left: Val::Px(24.0),
             width: Val::Px(310.0), padding: UiRect::all(Val::Px(14.0)),
