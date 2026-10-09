@@ -1,0 +1,21 @@
+[package]
+name = "mh-level"
+description = "Engine-neutral map/level reader: UE world packages (read through mh-pak) -> actors, mesh placements, lights, spawns, volumes (port of godot/components/ue/ue_level.gd)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+mh-pak = { path = "../mh-pak" }
+mh-physics = { path = "../mh-physics" }
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+# `impl mh_character::World for collision::CollisionWorld` (feature "world")
+mh-character = { path = "../mh-character", optional = true }
+
+[features]
+default = ["world"]
+world = ["dep:mh-character"]
+
+[dev-dependencies]
+# complex-as-simple triangles in tests (LOD0 positions + indices); a dev-only edge (mh-assets dev-depends on mh-level)
+mh-assets = { path = "../mh-assets" }

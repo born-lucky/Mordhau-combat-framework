@@ -1,0 +1,24 @@
+[package]
+name = "mh-assets"
+description = "Engine-neutral decoders for Mordhau's cooked UE 4.26 assets read from the paks: textures, sound waves, static/skeletal meshes, animation sequences, materials + the ue_tint shader (WGSL + CPU reference) (port of godot/components/ue/pak/ue_*.gd, ue_material.gd, game/render/ue_tint*)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+# BC1-BC7 block decoders (pure Rust port of bcdec, no dependencies)
+bcdec_rs = "0.2"
+# the pak / package reader (owner: rust-pak); only pak_source.rs touches it
+mh-pak = { path = "../mh-pak" }
+# export JSON (mh-pak Reader::read) for material resolution
+serde_json.workspace = true
+
+[dev-dependencies]
+# tests/vlm.rs reads the VLM through mh-level (a dev-only edge: mh-level depends on mh-assets::collision)
+mh-level = { path = "../mh-level" }
+# validates shaders/ue_tint.wgsl (same naga as Bevy/wgpu in Cargo.lock)
+naga = { version = "29", features = ["wgsl-in"] }
+# equivalence tests against extract/gltf (CUE4Parse exports): PNG pixels, glb meshes / skins / animations
+png = "0.17"
+gltf = { version = "1", default-features = false, features = ["utils", "names"] }
+serde_json.workspace = true

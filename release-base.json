@@ -1,0 +1,1760 @@
+{
+  "name": "Mordhau Rewrite in Rust v1",
+  "status": "private development snapshot; not a public playable release",
+  "base_commit": "5e222ec3da7b828804f70d54d33c15a84c12075d",
+  "original_build": "702625635",
+  "original_runtime_sha256": "F594363AFE183F7B16C99595BAB6312304F3C69BB4DD35DD213BE603F2235F71",
+  "runtime_binary_included": false,
+  "native_bridge_binary_included": false,
+  "source_snapshot": [
+    {
+      "path": "core/Cargo.lock",
+      "sha256": "ac2d594481453b5f90d2ee04672d6e6a683bda6fe6a7de64456176b3a0e7bb4d"
+    },
+    {
+      "path": "core/Cargo.toml",
+      "sha256": "5ef5f256dafdf2054f97a27a6d211589bd1b30794f99630f420068c0605015cd"
+    },
+    {
+      "path": "core/crates/mh-assets/Cargo.toml",
+      "sha256": "4646421ecbd27256274a2e33cd636f397c1b7746b2a48e69c9081f2addae8b29"
+    },
+    {
+      "path": "core/crates/mh-assets/src/anim.rs",
+      "sha256": "6553a73493c2eaeb0b27fd5db389ddd1bb4e6a1bb7f622e505f35d3c1b92ce02"
+    },
+    {
+      "path": "core/crates/mh-assets/src/buf.rs",
+      "sha256": "3980ffcc147dddc4d51c9edda167b372bc337b3720d90a079345e9444aa4ca3e"
+    },
+    {
+      "path": "core/crates/mh-assets/src/bulk.rs",
+      "sha256": "03f325cd719ec86d29da83f4093a55a438509e0278fb5df8b1314f13a3d47820"
+    },
+    {
+      "path": "core/crates/mh-assets/src/coords.rs",
+      "sha256": "75b92aa8249edb7420ab71c50127194cb84fa7b29fac80bf882de47d2c08dd54"
+    },
+    {
+      "path": "core/crates/mh-assets/src/cosmetics.rs",
+      "sha256": "5f14bb466296e8f89c0636cd7d1f7b1c0f58f23d1340eb54f7fd3d9857762263"
+    },
+    {
+      "path": "core/crates/mh-assets/src/equipment_paint.rs",
+      "sha256": "b02410071e751c2690e00b80a4ba16060e66e51b659d73a71e879d1d202ea237"
+    },
+    {
+      "path": "core/crates/mh-assets/src/fonts.rs",
+      "sha256": "4a116ab42a8db856c3458d5b8ac89766ca9272db82b61425e13906140725234c"
+    },
+    {
+      "path": "core/crates/mh-assets/src/lib.rs",
+      "sha256": "10c93949d9f63b0147ed82cf90d5dfa4c5a68cfe0b99c008f5f5c8da8f0f5770"
+    },
+    {
+      "path": "core/crates/mh-assets/src/material.rs",
+      "sha256": "46950bcc91637db2ba72156558d6898c2138c1d0a076d1db73016a884d7aad9e"
+    },
+    {
+      "path": "core/crates/mh-assets/src/pak_source.rs",
+      "sha256": "f3d3cccb5e09b0f1b0d92304b3655c36d633ba3cbaad6ab4faed8bf9562eb1f2"
+    },
+    {
+      "path": "core/crates/mh-assets/src/particles.rs",
+      "sha256": "45261b1b5433e93bf6d9f6bc948a37e544dd738a42e4d8b6d463fb97f9b582a4"
+    },
+    {
+      "path": "core/crates/mh-assets/src/physics.rs",
+      "sha256": "7f33610206eeda5370e23fb372f50bcbc29c06985201cd4b23c811ce7fa972dd"
+    },
+    {
+      "path": "core/crates/mh-assets/src/props.rs",
+      "sha256": "b5fcc7ceef0b4aec8893996b53fe99c646b43cddf2fc98e2c6fef885754377f9"
+    },
+    {
+      "path": "core/crates/mh-assets/src/shader.rs",
+      "sha256": "9eeaf6ae2a8f53681242f2a0b8badabd15b36fee7fb9d489c200a8af68f93ee7"
+    },
+    {
+      "path": "core/crates/mh-assets/src/shader_uniforms.rs",
+      "sha256": "16e1b8011eef085743b36e2b5b803add1ed82e6d7daf062ae248487167cdd04e"
+    },
+    {
+      "path": "core/crates/mh-assets/src/skeletal_mesh.rs",
+      "sha256": "df0fe869c053a708e90aa70ebb774fcc81feaa44724706c90bf93c545a6dca07"
+    },
+    {
+      "path": "core/crates/mh-assets/src/sound.rs",
+      "sha256": "3f804b304454d190e1f25202252571a6bbc305af00f026fbe9a1f4f7ebc4ac7a"
+    },
+    {
+      "path": "core/crates/mh-assets/src/sound_class.rs",
+      "sha256": "0103c80072ab6d4d20f267f284360ba47bc4ef4fb1a7e6ad4068dc67bf156a80"
+    },
+    {
+      "path": "core/crates/mh-assets/src/sound_cue.rs",
+      "sha256": "638bef62a0bd20d87b2ab27d1c8641734202793c323d350b0704122dc590c14f"
+    },
+    {
+      "path": "core/crates/mh-assets/src/static_mesh.rs",
+      "sha256": "d8ab4c585890862ecbb439fc01225ad51e48e2785ba8eeb09f65d258ada2a4f0"
+    },
+    {
+      "path": "core/crates/mh-assets/src/texture.rs",
+      "sha256": "09b870b6d016fe7ad52dacc10ff92247d02d87f7549abb9af4076919b3988e49"
+    },
+    {
+      "path": "core/crates/mh-assets/src/umg.rs",
+      "sha256": "a1333fc08bb5a2b5a41ac6abebb8d54a45867056210f180347bb513c5059a624"
+    },
+    {
+      "path": "core/crates/mh-assets/src/vlm.rs",
+      "sha256": "be5308595aba4abf31ac1a3390b06bd06eca0131b5adafe6fe8bfde9c4d6322e"
+    },
+    {
+      "path": "core/crates/mh-assets/src/weapon_trail.rs",
+      "sha256": "05477c00707eb788621a0e52b0df502aa9b462badcb41553ce379864d0bdf90d"
+    },
+    {
+      "path": "core/crates/mh-assets/tests/assets.rs",
+      "sha256": "4fa7f52b996157ca0cc6ffacc3d5615bea3459f27d8a8a1f2330a61b41185320"
+    },
+    {
+      "path": "core/crates/mh-assets/tests/char_materials.rs",
+      "sha256": "df9b06fe4a45d1e68b49ae15c04acab07f353b82dfdcd74551d564e680865843"
+    },
+    {
+      "path": "core/crates/mh-assets/tests/common/mod.rs",
+      "sha256": "c1aaae01ce3ba4d49e587414033d2b685eaf15dbe527683031724df00c0b9a96"
+    },
+    {
+      "path": "core/crates/mh-assets/tests/cosmetics.rs",
+      "sha256": "51e3ef45de500b65c4d9f0ca54cb4a72342397ad0bc92b0a39dd11f3cab70878"
+    },
+    {
+      "path": "core/crates/mh-assets/tests/fp_parts.rs",
+      "sha256": "7f8b49b5c53dd648d4a35f81a3ee071b4e83c5086d3e85ca30fd9ed552613cec"
+    },
+    {
+      "path": "core/crates/mh-assets/tests/materials.rs",
+      "sha256": "077170e092808d4de2256ed88a3e31b333d23aae367b3d486a219fe02823d1eb"
+    },
+    {
+      "path": "core/crates/mh-assets/tests/particles.rs",
+      "sha256": "77f7bafce2d313b999a58d48af6c4bd539d5d493c2acbffa5563a0dfee1e8135"
+    },
+    {
+      "path": "core/crates/mh-assets/tests/physics.rs",
+      "sha256": "1d7d126a31b069f36b1f0717d01b3bc4f2c02bfde976565c1ca4ca3431c8468f"
+    },
+    {
+      "path": "core/crates/mh-assets/tests/sound_cues.rs",
+      "sha256": "acb067a77e5caca1e2f41d2e4397faf013a47551a08fe5c6e4ae7c0d94b0912c"
+    },
+    {
+      "path": "core/crates/mh-assets/tests/umg.rs",
+      "sha256": "69f9332a16460f291284834c743164d3d49b83f1a08841e4226732b5b2df6512"
+    },
+    {
+      "path": "core/crates/mh-assets/tests/vlm.rs",
+      "sha256": "8ac8f053ef3c83cd1b068050853d1343c0eb610f4901b7819873151da9418c0a"
+    },
+    {
+      "path": "core/crates/mh-audio/Cargo.toml",
+      "sha256": "44f5c2a9ed4bba8d2b365e43fd59b597dd10f6a8316c78ee505f0d4470f2aa0e"
+    },
+    {
+      "path": "core/crates/mh-audio/examples/ambience.rs",
+      "sha256": "1ccbec59fabda51b8569341e03557831c3a35bbe57b8df5a0289a040e2c90c4a"
+    },
+    {
+      "path": "core/crates/mh-audio/examples/coverage.rs",
+      "sha256": "a16905b32c71daab8e6b1c06996c6986d512a07a0b2f08a2944de299e269d708"
+    },
+    {
+      "path": "core/crates/mh-audio/examples/evidence.rs",
+      "sha256": "78bfc76762df0c67a6528859c1ef46c320ab907ff5081e63dabe8e3260bbcaea"
+    },
+    {
+      "path": "core/crates/mh-audio/src/ambient.rs",
+      "sha256": "9062b0367e9dea2d1b5e52cc9a73df7284381ab8a6a36972c930804c01cf72ea"
+    },
+    {
+      "path": "core/crates/mh-audio/src/game.rs",
+      "sha256": "d73e8cc014040883a7d8ddacea9fdb54a6f870a415439d833e2b429c2f85dce6"
+    },
+    {
+      "path": "core/crates/mh-audio/src/lib.rs",
+      "sha256": "d66acd8ea0b826518e0049ac248d50b45ac6bb24e25cdabb54d694477fa24307"
+    },
+    {
+      "path": "core/crates/mh-audio/src/mixer.rs",
+      "sha256": "319eff4361b0b85130759bfc45d0c53636b09c55674da9ebcf0e354ed61b0b59"
+    },
+    {
+      "path": "core/crates/mh-audio/src/occlusion.rs",
+      "sha256": "7fb5b812f0da528448af22e964ab580d7b3e62553b86e36ebe6ca1b7ded8c345"
+    },
+    {
+      "path": "core/crates/mh-audio/src/reverb.rs",
+      "sha256": "112f2c774594e560613b4ff9d8ea029f7367a79d920ec12eb889a0e2dea81554"
+    },
+    {
+      "path": "core/crates/mh-audio/src/routing.rs",
+      "sha256": "59afd88e89856ecf0450ed89f881c59e239eab01cbc42dfc593a0ebaacbb6b33"
+    },
+    {
+      "path": "core/crates/mh-audio/src/sources.rs",
+      "sha256": "517dd9faf3ca36b6bcb64b01c71f841806d00f7756c8c6cc0733bbd3e34b8f26"
+    },
+    {
+      "path": "core/crates/mh-audio/src/spatial.rs",
+      "sha256": "40a8ada949e4d0a56f21a843c2716ced6c64899d13d3197a027355f1f882a300"
+    },
+    {
+      "path": "core/crates/mh-audio/src/zones.rs",
+      "sha256": "171c9e84a0c5188469111bc573cf55d56d5f10ce1498ebbacdf0e2842a74982e"
+    },
+    {
+      "path": "core/crates/mh-character/Cargo.toml",
+      "sha256": "0de88e93c55e2801b875f9e7d21bd8747a66b3083849fd9e0a074d4ef7bef0ec"
+    },
+    {
+      "path": "core/crates/mh-character/src/compat/character.rs",
+      "sha256": "b116f5376b4ba738489b46993d2ca01361c06b247eac8f73e94bf9663f87c15b"
+    },
+    {
+      "path": "core/crates/mh-character/src/compat/mod.rs",
+      "sha256": "f834e9c404ca7bfdc8be6a0798e26d92244251fd23f4be9983a41a384d0a6645"
+    },
+    {
+      "path": "core/crates/mh-character/src/compat/movement.rs",
+      "sha256": "103569df6a328bcb76f196d08bccf8c37f531e9b4af7b58b3e9cd65d7a03c329"
+    },
+    {
+      "path": "core/crates/mh-character/src/equipment.rs",
+      "sha256": "030c3833b24b6c979e9185a8ed8bbf06f1a771c8692fc0f6eb46a9837c5ad1b3"
+    },
+    {
+      "path": "core/crates/mh-character/src/exe.rs",
+      "sha256": "9fcc601ed2a0b9099fd906b1f66a689a4239bda7949f19862e3d379fe2426d76"
+    },
+    {
+      "path": "core/crates/mh-character/src/exe_climb.rs",
+      "sha256": "c905bf97373de46c0497ad8d5a6321a99550ab02eebcec10736cc7a78cc46c64"
+    },
+    {
+      "path": "core/crates/mh-character/src/exe_cmc.rs",
+      "sha256": "bd2f579bc81c106c27cbe204154adaee77a7fc64f547745747f603c77459cbe4"
+    },
+    {
+      "path": "core/crates/mh-character/src/exe_horse.rs",
+      "sha256": "24d2fe746cae08a2df312b6beb6f8fb94090d3b35ac51112912dfefb40b14e0f"
+    },
+    {
+      "path": "core/crates/mh-character/src/exe_ladder.rs",
+      "sha256": "e1af58843272517daa9e4e2acb948d7146cef88c31989f37859ab77a174f0012"
+    },
+    {
+      "path": "core/crates/mh-character/src/exe_lod.rs",
+      "sha256": "a7969188f876685e781db33c627f1d58c936436c0a2d6b454418c9eba063f853"
+    },
+    {
+      "path": "core/crates/mh-character/src/exe_pseudo.rs",
+      "sha256": "fb68f816d9b51fbb357b3d93be27eb950ff40874356f9571f7b690777bdf5851"
+    },
+    {
+      "path": "core/crates/mh-character/src/lib.rs",
+      "sha256": "c8787d36f2941c85b99965686e6fa889da19b903c741d0838dd7e9a6075d2e69"
+    },
+    {
+      "path": "core/crates/mh-character/src/projectile.rs",
+      "sha256": "8e972f71577eb18a0d0f06da9b3e8d415191ecdfd82f5884548eb1f2c8687252"
+    },
+    {
+      "path": "core/crates/mh-character/src/records.rs",
+      "sha256": "2fe5fde7527ac7e1ca250ed1b068b689932ad4b0cc081df2e5bc77fc5d46e9ed"
+    },
+    {
+      "path": "core/crates/mh-character/src/siege.rs",
+      "sha256": "47571a24095dd483e379cf19a810365f184077937f36eff083e418ec2847d494"
+    },
+    {
+      "path": "core/crates/mh-character/src/spec_source.rs",
+      "sha256": "7316d36678702ee52fcdac37f72bf06fea5d5b6bc4ac25cd669f9bd3838ad1d0"
+    },
+    {
+      "path": "core/crates/mh-character/src/ue.rs",
+      "sha256": "8a4a8548cafc7585722600729ebe624e5c747de0849c95a1f1e4e9cd7a75c67b"
+    },
+    {
+      "path": "core/crates/mh-character/src/uemath.rs",
+      "sha256": "19590057f7b3ec5aac9f49efff30da9dcc1e388ff2f94a813639910227cee910"
+    },
+    {
+      "path": "core/crates/mh-character/src/uequat.rs",
+      "sha256": "2aece99ea419bb623d82fd8fc8bd34c5f669135e7bd6b3aba1f20718c1d9fb50"
+    },
+    {
+      "path": "core/crates/mh-character/src/world.rs",
+      "sha256": "3965a45e1b6b0a7b024e8a8291de3d2aa8ffb99a605f99ecf87fc68f93fd6e31"
+    },
+    {
+      "path": "core/crates/mh-character/tests/demo_parity.rs",
+      "sha256": "fd95248061d0e6341cde2b4b51b15fbeed7cb003e5e5ae34f84bbd0cf567d1a0"
+    },
+    {
+      "path": "core/crates/mh-character/tests/equipment.rs",
+      "sha256": "6a0768e201a37c9cf8ae4ca5015fcc86c13e85e192916e8edb84f54d8d9aa155"
+    },
+    {
+      "path": "core/crates/mh-character/tests/exe_climb.rs",
+      "sha256": "af9ca4dca652f684c97dbcfc7d7be776951ef9228645a59b364dfd22074b40dc"
+    },
+    {
+      "path": "core/crates/mh-character/tests/exe_horse.rs",
+      "sha256": "bfa192a5a224a6986f761a4598ca4ba8c9b8e33d33fd4d3007514b556626676d"
+    },
+    {
+      "path": "core/crates/mh-character/tests/exe_ladder.rs",
+      "sha256": "8205a7b1f4554968434e76b9e50fb0f1cee3243beb610a8ec923c4547679a864"
+    },
+    {
+      "path": "core/crates/mh-character/tests/exe_lodtick.rs",
+      "sha256": "94cb81b37593e730d6c338ff2414e47ac01630dcd3e77d165a8091a16865b6b9"
+    },
+    {
+      "path": "core/crates/mh-character/tests/exe_maps.rs",
+      "sha256": "6438b50864ad585db392140cd5728b56c8b68c6fcfe6be7d4c451e8c36c02f7a"
+    },
+    {
+      "path": "core/crates/mh-character/tests/exe_pseudo.rs",
+      "sha256": "d5d8afeaae97e62af324f72122bc77fda135260d1a70424f0c33802d7d8373be"
+    },
+    {
+      "path": "core/crates/mh-character/tests/exe_rules.rs",
+      "sha256": "8f6076033bdb91da2b9812be43d4e5de899bd7b4a386cc2466e0013aaa6984d9"
+    },
+    {
+      "path": "core/crates/mh-character/tests/exe_world.rs",
+      "sha256": "d2e9ec7d1b6d30cba9aeab083a4be7d6617f310b6215790ace9d2736373f79bb"
+    },
+    {
+      "path": "core/crates/mh-character/tests/golden.rs",
+      "sha256": "be8564c46933a295a9b046dc69f8263caa95357fbdae41f4796132c2992301cd"
+    },
+    {
+      "path": "core/crates/mh-character/tests/projectile.rs",
+      "sha256": "2cab2fa4a285926fa986c92c307c5fe607c39770ef55f9cfa1ac0bf32ce5e2f7"
+    },
+    {
+      "path": "core/crates/mh-character/tests/projectile_maps.rs",
+      "sha256": "ab9539655aadffa13ed6db1df4d0dc18fa790222f1857bb18e49a55487e5905e"
+    },
+    {
+      "path": "core/crates/mh-character/tests/rules.rs",
+      "sha256": "3a24c3ae89f4b1a098798f1e821b8d213fb72effbf1185b7346c4fd54cf74e28"
+    },
+    {
+      "path": "core/crates/mh-character/tests/siege.rs",
+      "sha256": "5b72cd0a448f668b8881cc124211e8104aeadd6fb7d736dcaceac2c050032596"
+    },
+    {
+      "path": "core/crates/mh-character/tests/spec_source.rs",
+      "sha256": "4036d92bb359567a4aa310ecb0cd152cebde427a2e0b9d391d588e0dd5ae3ff2"
+    },
+    {
+      "path": "core/crates/mh-fx/Cargo.toml",
+      "sha256": "2c26da42c75b038da32f3be9d0996cfd970496adabba3eb778904c77aee14e33"
+    },
+    {
+      "path": "core/crates/mh-fx/examples/coverage.rs",
+      "sha256": "2b4a273d1c28f601dbc22ab3ba1f79def3c36d5f38f98f3a1180998f543200b5"
+    },
+    {
+      "path": "core/crates/mh-fx/examples/evidence.rs",
+      "sha256": "48e6c7dc09f21a49732f7f8dea3020bcd54304ce77c4e023a60b3115b79501fa"
+    },
+    {
+      "path": "core/crates/mh-fx/src/lib.rs",
+      "sha256": "fb437dfd66dca31b39f28a1483ea511473fb8efaf63609fe27f007865ab03df3"
+    },
+    {
+      "path": "core/crates/mh-fx/src/map_fx.rs",
+      "sha256": "175ee892024d231928d737a846627890399866cba971ab2ff799c82840f2824a"
+    },
+    {
+      "path": "core/crates/mh-fx/src/material.rs",
+      "sha256": "5e9d2ca54176b8e33e3bbc4d31b9f872e51b4c8760b88b67387b6eed2bdeb88b"
+    },
+    {
+      "path": "core/crates/mh-fx/src/sim.rs",
+      "sha256": "9a67e1c447a93eb447aad96b2c448bfbde4ecd55001b380385974356cd269837"
+    },
+    {
+      "path": "core/crates/mh-fx/src/trail.rs",
+      "sha256": "f57dc0e7879fe826f51cbd314c2c3f017ba2890737816c60b71895b51d06b033"
+    },
+    {
+      "path": "core/crates/mh-fx/src/ue_material.rs",
+      "sha256": "463c111fdd90c74f704242e04d301d48bcedf00ab0edf2c074841dd2be4c5aca"
+    },
+    {
+      "path": "core/crates/mh-fx/tests/ue_shaders.rs",
+      "sha256": "9d7e29980c049eb2ff55dc8d5f27a594cc504a64db9c9f8ef0a06bcbf58e2f22"
+    },
+    {
+      "path": "core/crates/mh-host/Cargo.toml",
+      "sha256": "0943a9e21c549ee3f5fcbc0b8a450a1afc4951a0e1d61923e96392355d1eb919"
+    },
+    {
+      "path": "core/crates/mh-host/src/bin/mh-spec-src.rs",
+      "sha256": "19500b941ac64d50ace60324bf2999364c9b80a867a1c410074cb42e6d8a998f"
+    },
+    {
+      "path": "core/crates/mh-host/src/exe_records.rs",
+      "sha256": "d536c23712bb8eb53c5c8a0c5322494d1a43f751b2f61e04ed5887352db04744"
+    },
+    {
+      "path": "core/crates/mh-host/src/lib.rs",
+      "sha256": "7b2d4b62957a994f6fa8257f98fd93463b73dc8a1ceb143bc0bb27470da4698b"
+    },
+    {
+      "path": "core/crates/mh-host/tests/exe_records.rs",
+      "sha256": "2120b1255e0e2d25c69ae01bb7a69f6b7e1ad17177507926bce3a81a64ca74d2"
+    },
+    {
+      "path": "core/crates/mh-host/tests/host.rs",
+      "sha256": "4a1367b08f3702712edbffc6d9b8697fa218a6e20f7aabb861a238765408715e"
+    },
+    {
+      "path": "core/crates/mh-launch/Cargo.toml",
+      "sha256": "1177d8a525ec3ccd94a161c7a4427bcfa0130270b594bc31de856b85fa277198"
+    },
+    {
+      "path": "core/crates/mh-launch/src/main.rs",
+      "sha256": "4fe30c3a3faa8ce42dd3e26a45d9072a5dd6834bd419200a40ee8222861e7b46"
+    },
+    {
+      "path": "core/crates/mh-level/Cargo.toml",
+      "sha256": "93110df9c4bf22b72842e6e81fa735c16d91341cbb28b8a197697c056b6fe603"
+    },
+    {
+      "path": "core/crates/mh-level/src/actors.rs",
+      "sha256": "c7ea4f4a908d5fcdfef35789d933a5086c91295d22f83e516e5921d6f59edf3f"
+    },
+    {
+      "path": "core/crates/mh-level/src/builddata.rs",
+      "sha256": "a9ec9919810f242b7a572f1f460ea55e52e4ca8fe3bfe803dc635de51879d1ee"
+    },
+    {
+      "path": "core/crates/mh-level/src/collision.rs",
+      "sha256": "4c3b9df42fef8e9501ef0e1a44ea6f451990ec61830cb86023ac700899002fca"
+    },
+    {
+      "path": "core/crates/mh-level/src/complex.rs",
+      "sha256": "9535d19cf0eb4c38b849654b557c0ffda125b8e0f0b1dfdbf01db165903e748b"
+    },
+    {
+      "path": "core/crates/mh-level/src/config.rs",
+      "sha256": "fe746cc438f982ce385964ae966251cc52d47132cbe52b1f75206499f9302d22"
+    },
+    {
+      "path": "core/crates/mh-level/src/gjk.rs",
+      "sha256": "59514837360d2fb892c5a7ca576391d6be53846511fa9cc4f0bbeaf32f3ecc1e"
+    },
+    {
+      "path": "core/crates/mh-level/src/landscape.rs",
+      "sha256": "f25a7d7d85a9dcad9c57b6ad4772fd90c4c42c617360196970e3354eaaf1fecd"
+    },
+    {
+      "path": "core/crates/mh-level/src/level.rs",
+      "sha256": "f43c34651edb4a3da224cd165ff7c93cec71191dbb1fd7ec3fa7b7f188b1b10f"
+    },
+    {
+      "path": "core/crates/mh-level/src/lib.rs",
+      "sha256": "e3a1fb93c680aeca245106d63d740f8d522ff0d40610d5cd8e5cce3830a88cb0"
+    },
+    {
+      "path": "core/crates/mh-level/src/native.rs",
+      "sha256": "55cbcd43ca17bb55a8d96c4613a9b72df58927f9bae24fb3bce94001db55fc8e"
+    },
+    {
+      "path": "core/crates/mh-level/src/texture.rs",
+      "sha256": "e62ec9d9273e659fd478bd22a9a9efc33e6235e75fa147d65892df0b6a7040a0"
+    },
+    {
+      "path": "core/crates/mh-level/src/vlm.rs",
+      "sha256": "2d098ce2bbfc59c189783b7d374fab3a5d402fabc336bf6e0bd40a3564e8ee49"
+    },
+    {
+      "path": "core/crates/mh-level/src/world.rs",
+      "sha256": "10f00cfd92d65d80918a5b04f3c93bbde68554aaeb4a0c39bc4bf845339d4542"
+    },
+    {
+      "path": "core/crates/mh-level/src/xf.rs",
+      "sha256": "9ed6530ca02b8cf0479aafed8027afb65312918c76672ac98474f002093606cc"
+    },
+    {
+      "path": "core/crates/mh-level/tests/collision.rs",
+      "sha256": "93fe63a266af7b0ec53ac1e074ef7a5c7029a4d7252bb7c8883cec74aabca262"
+    },
+    {
+      "path": "core/crates/mh-level/tests/hidden.rs",
+      "sha256": "93d91df8d8fbddb7fa6636d5a840afc4937ec5d4cb329832247abac072505528"
+    },
+    {
+      "path": "core/crates/mh-level/tests/level.rs",
+      "sha256": "f7402b61fa06fedc5d51fed4be7192ce40d92ec05865e380fcf7eb833d645c00"
+    },
+    {
+      "path": "core/crates/mh-level/tests/r3.rs",
+      "sha256": "a64a1b1bf3ab7b8120e15c806575884ee7c50413c0312a5d91ee084c43d24387"
+    },
+    {
+      "path": "core/crates/mh-level/tests/r4.rs",
+      "sha256": "f90c7c006327b3c741b635328d6cba14163df9f267d5cf52313c6b97660cb757"
+    },
+    {
+      "path": "core/crates/mh-level/tests/r6.rs",
+      "sha256": "f141e50faef0fe3c132f29031ec078875aa0f3971ddc570a19cc7e0878403ed8"
+    },
+    {
+      "path": "core/crates/mh-level/tests/r7.rs",
+      "sha256": "1c1d17ff5ff914a793b17236d27a47db7575f4aac75c3bcdf9e8acf2e199b126"
+    },
+    {
+      "path": "core/crates/mh-level/tests/smoke.rs",
+      "sha256": "29ad417b19e81e1551022a4acab3cb2e405a9b1aff98b364616d8e357de6a4b8"
+    },
+    {
+      "path": "core/crates/mh-level/tests/surface.rs",
+      "sha256": "3a1df878dd01208a4b5e7bb9e0c299c991258aa6e0989191a338b1713f2b4381"
+    },
+    {
+      "path": "core/crates/mh-mode/Cargo.toml",
+      "sha256": "2271e9a2bfa607a505953f7d2f9492766141524178e1f82418e084d2b662b909"
+    },
+    {
+      "path": "core/crates/mh-mode/src/ai/body.rs",
+      "sha256": "fc9b46afc2e3a73165af5cb893cb5086d2ecc5dda9e5f54314f2fd9b001cc472"
+    },
+    {
+      "path": "core/crates/mh-mode/src/ai/bot_profiles.rs",
+      "sha256": "0a330e8d1e1a1e96c0d60ae5f18c395135109f07e0392b046a28a66044567c34"
+    },
+    {
+      "path": "core/crates/mh-mode/src/ai/bt.rs",
+      "sha256": "2222a17972f0934c2a1da8f07da6eea58e0c1d517214e47ba6127467f5a36769"
+    },
+    {
+      "path": "core/crates/mh-mode/src/ai/bt_read.rs",
+      "sha256": "d1120cbf441a259d2d11ee57606b7677bbd3f91c45ef237e200dc909f3fd6d1f"
+    },
+    {
+      "path": "core/crates/mh-mode/src/ai/combat_host.rs",
+      "sha256": "f321447edf4147629e502511487b58616e0cb1b40a50122e822f3e02804a9517"
+    },
+    {
+      "path": "core/crates/mh-mode/src/ai/controller.rs",
+      "sha256": "dddb7cc6207c418c768ba9c34932e0c371c3f87cba5499d94443af8ccdf113b1"
+    },
+    {
+      "path": "core/crates/mh-mode/src/ai/mod.rs",
+      "sha256": "13835c71e7b75df7c09a77c3132169ad36e57e94c4b3cc594f45f87f33f04f68"
+    },
+    {
+      "path": "core/crates/mh-mode/src/ai/nav.rs",
+      "sha256": "303a4598ec89e86bf358506979fbc991b27758ab8cb21a0dc0dc45cfaabc889e"
+    },
+    {
+      "path": "core/crates/mh-mode/src/ai/profile.rs",
+      "sha256": "e1bb1d351ef16a0b833e73cf9e57ad8651cfba16b28cbc7c0d207f23dcc69fa6"
+    },
+    {
+      "path": "core/crates/mh-mode/src/ai/tasks.rs",
+      "sha256": "65bbe64a45d01b0e2ea2c2210bc534ea4563cbbb2581c2fbfa69480a9fa103a2"
+    },
+    {
+      "path": "core/crates/mh-mode/src/br.rs",
+      "sha256": "0234326a228db599be4c9a32f92296e483471dee61e2db685b67a1b6e3f517ea"
+    },
+    {
+      "path": "core/crates/mh-mode/src/consts.rs",
+      "sha256": "58a2d40e3394fd640f2c2e2f0a4652375e9330c0ede990cf596f71da584dc671"
+    },
+    {
+      "path": "core/crates/mh-mode/src/control_point.rs",
+      "sha256": "0775cde683eb73812d40fa978c1b0e718f9c6478e6c9cf65b6d7c6525809ab52"
+    },
+    {
+      "path": "core/crates/mh-mode/src/data.rs",
+      "sha256": "eff646e210ecaeee316fe945a982a1655067ea3eddef8edfd4f678c0ce4675b0"
+    },
+    {
+      "path": "core/crates/mh-mode/src/demon_horde.rs",
+      "sha256": "2cf933ce89a0a7ff89327046bf02b437ad3c6ac7d49a42d9481e05d4d28477f8"
+    },
+    {
+      "path": "core/crates/mh-mode/src/event.rs",
+      "sha256": "0556e8ca8ff6fa6cbe8543d7a361ac2e329f5250d38d5607cce1f6c8b07f0644"
+    },
+    {
+      "path": "core/crates/mh-mode/src/game_mode.rs",
+      "sha256": "0db5d08421684a2fb6d6b10f8177ef2ec4602d946f8cdaeed688e0c384504338"
+    },
+    {
+      "path": "core/crates/mh-mode/src/horde.rs",
+      "sha256": "64432c763a1ccd9f66e4605ec4255b67939f71be45105846d9e2850632d3ac84"
+    },
+    {
+      "path": "core/crates/mh-mode/src/horde_extras.rs",
+      "sha256": "26905b4b357cdb4dbb7101f4d18a41cf324ed981cfc69e9d4ecebd2aac987479"
+    },
+    {
+      "path": "core/crates/mh-mode/src/kismet.rs",
+      "sha256": "3ec8a3f2de9a4e460b9fec0ac917bf5483376ed18566a2a66c9b123494234967"
+    },
+    {
+      "path": "core/crates/mh-mode/src/kismet_rand.rs",
+      "sha256": "01777e922a140902e8ad12e7b09fa5db5127e692272a9f02ba74553b0646259f"
+    },
+    {
+      "path": "core/crates/mh-mode/src/lib.rs",
+      "sha256": "045ce2a2eb2717b115577ac72e6ea9e12ee908b3c9a2e38afaa5d832494a891a"
+    },
+    {
+      "path": "core/crates/mh-mode/src/mode_table.rs",
+      "sha256": "e6c73520eb1f428489fb48b0594b9cf36720bb7d8af423d7e44870d7eeb98be8"
+    },
+    {
+      "path": "core/crates/mh-mode/src/modes.rs",
+      "sha256": "a8bc207ea9218a53a9fd69bbb4b851c57da2486a83137464f969746beb8bd9ce"
+    },
+    {
+      "path": "core/crates/mh-mode/src/rule_ids.rs",
+      "sha256": "bd7724116e4dc6ccea5fbb3a25d9dab99d61d13a8fd6a49fd3028f646a37b414"
+    },
+    {
+      "path": "core/crates/mh-mode/src/sim.rs",
+      "sha256": "61300c6b28d9e0e8b196dd48b71e4444fc08d4b83bbe61403c75e1fdd94ccd49"
+    },
+    {
+      "path": "core/crates/mh-mode/src/spawn_queue.rs",
+      "sha256": "fa7122c1bcc647bb6dc2f996b7f87ca45755c83ee9c4368b51f8c192d703cc67"
+    },
+    {
+      "path": "core/crates/mh-mode/src/spec_bots.rs",
+      "sha256": "af51e0a6a39102443e84d9fcded9517baf1a3c9c9ab0cdc3abb4088d1623fb60"
+    },
+    {
+      "path": "core/crates/mh-mode/src/spec_horde.rs",
+      "sha256": "c1d82cb8180707e332b6530be0df0163d291e42a424bd2772283dfc69f975f70"
+    },
+    {
+      "path": "core/crates/mh-mode/src/spec_load.rs",
+      "sha256": "da7e92aeb0c8fb05d39a8d2e13f14a4aa3e97222a6672e6128e9db5a3eb48d86"
+    },
+    {
+      "path": "core/crates/mh-mode/src/ue_math.rs",
+      "sha256": "251a4cb4babdb3880bd80afc9447b66b67738cae698ac51ef401206a15cf58f7"
+    },
+    {
+      "path": "core/crates/mh-mode/src/views.rs",
+      "sha256": "45f4ddeeb54f0027557c53148558a37964a291b60b8022cd64d5eb659fafd985"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/ai_gaps.rs",
+      "sha256": "a36cee5356e1a259816ae287bf64c1b5c255aa8fb25f006035f63559f9592f14"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/bot_roster.rs",
+      "sha256": "4d962600014ae3fa9382b07f7a055a3d8b0cd4646f255cf2d48ea958beebc37b"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/bt_read.rs",
+      "sha256": "11e39785974ef26b36509d16a7c037d6eda1f0259294155e04d7a39c310a0267"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/closed_loop.rs",
+      "sha256": "42302f18c08acc65e9a00a7e44cbad58be62d09352d71c1617d6d7fb781c79f1"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/golden_mode.rs",
+      "sha256": "794fe2c234855c8b9894c0c1e40afa140a9aa8724b930bf27464db8fe90fb7f9"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/horde_br.rs",
+      "sha256": "a743ad9831dc208fd615534eee84d9ddeddbba6635bc5894b1756a879002da29"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/rule_ids.rs",
+      "sha256": "5bca3cc82a77df8daafee9cde06005f397accc866593c50f1b0d5978924c44a9"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/rules.rs",
+      "sha256": "13d6975f196bbcef52fff62fe39a10e27d41c0600df04a0d5e71e031b5d162b8"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/spec_equiv.rs",
+      "sha256": "91141ea4ab3d536ee21c8c218d997a392b9bd45de963f3c97ec632d1c9f71383"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/spec_equiv_bots.rs",
+      "sha256": "f4cbc91bcef6a2c9511c387634c520e5f6eaad1cd551189b1a2d850d49ef8955"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/spec_equiv_hrd.rs",
+      "sha256": "4cb819dcbcd4af5785bb9641982835e283505be1c544d3e51dc1d11f1466649e"
+    },
+    {
+      "path": "core/crates/mh-mode/tests/trig_crt.rs",
+      "sha256": "d0cba180636cd3dcac74c1f55f0ec9513a17cec1ec372f82cbdb2b1597d553bb"
+    },
+    {
+      "path": "core/crates/mh-nav/Cargo.toml",
+      "sha256": "3fff7e72a6798619a7c57822f1c42da02f3df7c748caa6304ba0f3f87da7428d"
+    },
+    {
+      "path": "core/crates/mh-nav/src/cooked.rs",
+      "sha256": "fa50c1f27e885817ca18b00e470e8dc18165d72438202142c0904d17c692fc6e"
+    },
+    {
+      "path": "core/crates/mh-nav/src/detour.rs",
+      "sha256": "bc0ce30e3779faba9e1da71cbb1e919e16a3398de4954963ed6b7585f6523423"
+    },
+    {
+      "path": "core/crates/mh-nav/src/lib.rs",
+      "sha256": "0223eac6f73725c92d98b3dd208068f4f16b9af1b373577c5dc423fad4dcaf29"
+    },
+    {
+      "path": "core/crates/mh-nav/tests/cooked.rs",
+      "sha256": "bbe872f06b34b030ed3382c09494c251f90da867adcf77c6cf124883c1f9d2e6"
+    },
+    {
+      "path": "core/crates/mh-nav/tests/horde_sim.rs",
+      "sha256": "c8dc759c6ae2e3ee968cac6d12a6f0f236c0f32a368d67b729e5354556e1c00b"
+    },
+    {
+      "path": "core/crates/mh-nav/tests/nav.rs",
+      "sha256": "8fc5bdddf3a238a5c9466898fa737546f2449048f71b9190359e249b6e413fc7"
+    },
+    {
+      "path": "core/crates/mh-nav/tests/sim_nav.rs",
+      "sha256": "1fd18adb94aee070e5e5b14f8875507ef7b37fe5846ca978c9586896ecdcf533"
+    },
+    {
+      "path": "core/crates/mh-net/Cargo.toml",
+      "sha256": "0f7b7f5710c8b717e8c5478accdf1c0a0c90508babd999f8cc1d65ca5a703d3e"
+    },
+    {
+      "path": "core/crates/mh-net/src/beacon.rs",
+      "sha256": "57269b3d634bd130853f30e2c4ee751a13501ba5ce6137621c68c09842fe2383"
+    },
+    {
+      "path": "core/crates/mh-net/src/bin/mh-net-node.rs",
+      "sha256": "092c6b5ef8e9a4922c77e230ed9f79d568cb6b2d03baa672c18b9931bbe60687"
+    },
+    {
+      "path": "core/crates/mh-net/src/client.rs",
+      "sha256": "6548594934caa58f8ebcf1dbfaac3dfaec61f8e2c0655ad617fa11131b9722c4"
+    },
+    {
+      "path": "core/crates/mh-net/src/consts.rs",
+      "sha256": "951c66282190ccbc32d2221e4e0633b4a3f05ff231e149580c68ebfa01de64ba"
+    },
+    {
+      "path": "core/crates/mh-net/src/core_world.rs",
+      "sha256": "a68fb94a806ef758e3052825b93ed42a9ec992d754950da9fbc3bb115014d3a6"
+    },
+    {
+      "path": "core/crates/mh-net/src/duel_match.rs",
+      "sha256": "ef690aa09ad30b5386c2fed522ae34278cd6286b4087c4592dc078b6a57b2f70"
+    },
+    {
+      "path": "core/crates/mh-net/src/enums.rs",
+      "sha256": "8bb9ab003bba7435578dbe293d1a57542dd3ce2318e60e514eb59b9f0faa5182"
+    },
+    {
+      "path": "core/crates/mh-net/src/game_session.rs",
+      "sha256": "74cd0dcbe018d7a8b9b34eb976b546bdbe186f44fe1c46ac2d850619f3e10077"
+    },
+    {
+      "path": "core/crates/mh-net/src/layout.rs",
+      "sha256": "7d7c507df65f79363e5bcb112f92cb484d01126c9b345fce97923e5274b5a8cc"
+    },
+    {
+      "path": "core/crates/mh-net/src/lib.rs",
+      "sha256": "8ae4bae44e4857a2f7ab505a71a9cb4fc70537cd727e51293e5fa5833487cd42"
+    },
+    {
+      "path": "core/crates/mh-net/src/mode_adapter.rs",
+      "sha256": "1aef41cf632cd3386d915e8fbd993888d21a663d00d32509b84077c26ebd1067"
+    },
+    {
+      "path": "core/crates/mh-net/src/movement.rs",
+      "sha256": "626f6b7877fd3ca7c25652b32100cb15b2d7997eb747b840cc9f7268f1205bf3"
+    },
+    {
+      "path": "core/crates/mh-net/src/msg.rs",
+      "sha256": "864cc2da29652cd2496fc8ce40c5921c46f0f5f7990a90609d5c8ef8e0365569"
+    },
+    {
+      "path": "core/crates/mh-net/src/netmotion.rs",
+      "sha256": "985e6a1d18d8c4c79cb6014f7c0085ae0631494cf4a181cce56ede2845f472ad"
+    },
+    {
+      "path": "core/crates/mh-net/src/node.rs",
+      "sha256": "ebad315afe54b725599ba542d4939e4cf1d5b8d433a007c9a42cf9d4818f97db"
+    },
+    {
+      "path": "core/crates/mh-net/src/pawn.rs",
+      "sha256": "0bf430a77682e7a64a319a84a2b2735bed76a265fa4eba6d48e7f33866d8bf88"
+    },
+    {
+      "path": "core/crates/mh-net/src/player_state.rs",
+      "sha256": "e1439067804a32c7c8e21c3dcdb8583ec2119894f971aa2cd61bfa7ac3dcaaa2"
+    },
+    {
+      "path": "core/crates/mh-net/src/quant.rs",
+      "sha256": "130c34319895d20c02fab0889f3cf700e4f0c4dee7dcd361c41b710b7bfc0d09"
+    },
+    {
+      "path": "core/crates/mh-net/src/relevancy.rs",
+      "sha256": "3bda4032d3a684f1dc3f362a119b36cfb64240ed426852b215fc01e9f5958bdf"
+    },
+    {
+      "path": "core/crates/mh-net/src/rep.rs",
+      "sha256": "dbeaf8c24be8f180ad33ed5aed00aee403fd3dfaca2c6560355cc4bcadf806e6"
+    },
+    {
+      "path": "core/crates/mh-net/src/server.rs",
+      "sha256": "73c4be7307e09654a5ce0fe4f961d1c02d4de1e87a2566d1ec7a3b26605f13a0"
+    },
+    {
+      "path": "core/crates/mh-net/src/session.rs",
+      "sha256": "e1a169b603d5f044125690894a1fabb00ecb018f4c072d2e2b41c080bfb51869"
+    },
+    {
+      "path": "core/crates/mh-net/src/sim_server.rs",
+      "sha256": "cc5aaaadbd61ce5f2672e468d54f3f16367db648932f7588f560e7829c816a2e"
+    },
+    {
+      "path": "core/crates/mh-net/src/stat.rs",
+      "sha256": "5f42b14af35e164c11f00482d05af65925f85ca7c9894f3b71c38b28c4e2ae8c"
+    },
+    {
+      "path": "core/crates/mh-net/src/transport.rs",
+      "sha256": "230c893dc51e7baf3c29a6d485e7310d8c66cbc9e5f8cb7d78c16d242fc463fc"
+    },
+    {
+      "path": "core/crates/mh-net/src/ue.rs",
+      "sha256": "2a36539177b105c1c29a7013bfa5047777fef2834d38966aecbd6b5612484d3a"
+    },
+    {
+      "path": "core/crates/mh-net/src/wire.rs",
+      "sha256": "72b3acf5b428e5843acf354f02f021a8f0d2bda7125480d4f0195d7983f51264"
+    },
+    {
+      "path": "core/crates/mh-net/src/world.rs",
+      "sha256": "3c4b742cf2602640b1a2eaee98ce762ce3e745269459fb31e1e387dbde1d2521"
+    },
+    {
+      "path": "core/crates/mh-net/src/world_rep.rs",
+      "sha256": "e47441a9bbbc9a2bf1f712e98a65d3112644a005411020dc41b382bec563e033"
+    },
+    {
+      "path": "core/crates/mh-net/tests/core.rs",
+      "sha256": "020557cc61cd3f861b4c747e46534f0f9f518f96354eac3db52269a1dbe6de31"
+    },
+    {
+      "path": "core/crates/mh-net/tests/mode.rs",
+      "sha256": "856e47a76346c9ea65cfcb5b217857d9cdd90a510139c1cf467b5e1760b2fe3d"
+    },
+    {
+      "path": "core/crates/mh-net/tests/movement.rs",
+      "sha256": "a64317ad7b91db496c1413e240dd8098988799f3beb71f643eb6ed3211fd556a"
+    },
+    {
+      "path": "core/crates/mh-net/tests/net.rs",
+      "sha256": "4c2dfda666985f9803069f6d50503606c72e96f77c4a960bd1895c88397debce"
+    },
+    {
+      "path": "core/crates/mh-net/tests/node.rs",
+      "sha256": "5228410ae6a9a36998fb3b8f5782ca3486397229425723c277878471f799e1ef"
+    },
+    {
+      "path": "core/crates/mh-net/tests/ping.rs",
+      "sha256": "083930a7030d06ff54c5f9e7c8d4627d9cc474b78099bdc7ea2e31e8d74f31dd"
+    },
+    {
+      "path": "core/crates/mh-net/tests/proxy_map.rs",
+      "sha256": "ac78fa4fc7c919f5b44875c6264125c51c3ffa61251873649237de5b0d67fe14"
+    },
+    {
+      "path": "core/crates/mh-net/tests/quant.rs",
+      "sha256": "2bb0e6107a60fca464eac9ff40cb7d0f0fa54313a6a66d7dfd9d9319c2ce7741"
+    },
+    {
+      "path": "core/crates/mh-net/tests/session.rs",
+      "sha256": "951b7e2f78047e220bb571daae32c0197b4b89fa5c43aa5044e7610c51040f32"
+    },
+    {
+      "path": "core/crates/mh-net/tests/sim_match.rs",
+      "sha256": "2e73472605f9da7739effdde9574840985a310031f8998e3a98da9f65be736d0"
+    },
+    {
+      "path": "core/crates/mh-net/tests/support/mod.rs",
+      "sha256": "927791206703625bf39bdb21b42e7de9e1a95d2194ca77937f722b18690bd106"
+    },
+    {
+      "path": "core/crates/mh-net/tests/two_process.rs",
+      "sha256": "b18e64ba518a66a796f8c236ea8bc7c8091d83c8526e687aadc1d4978c826296"
+    },
+    {
+      "path": "core/crates/mh-net/tests/world_net.rs",
+      "sha256": "fd9aec1bf5b8e92e1f2f4e126c0ae940c7b30ec34ecae27f4a31631bf4f75f45"
+    },
+    {
+      "path": "core/crates/mh-pak/Cargo.toml",
+      "sha256": "2e1ed42409485d27240c8ca55c0a7aa20deab895026f4488189e1972746256b0"
+    },
+    {
+      "path": "core/crates/mh-pak/src/aggeom.rs",
+      "sha256": "a7c35fa8f25e843cf5e8d71ba7c048fb804bdedc82463423f76aa0b6f4db98de"
+    },
+    {
+      "path": "core/crates/mh-pak/src/asset.rs",
+      "sha256": "1951e705e0636b648662a373a4b5350b1beeb0132b6de54cdaa28884d4dcbef4"
+    },
+    {
+      "path": "core/crates/mh-pak/src/bin/mh-pak.rs",
+      "sha256": "6992b17c281560e30c1195159b4a54a60c8ca15ff5178ae752e6a4d15aadad90"
+    },
+    {
+      "path": "core/crates/mh-pak/src/buf.rs",
+      "sha256": "39a016234b97f47e66583ae98bbd7eac6c8a09e2f807dc71c014d0808cdb7d01"
+    },
+    {
+      "path": "core/crates/mh-pak/src/bulk.rs",
+      "sha256": "3eec9941288dab1bbb5918d2ffaf99410d07a656e8a7f2b04042e39df84b430a"
+    },
+    {
+      "path": "core/crates/mh-pak/src/cooked_body.rs",
+      "sha256": "dc2c7aefa6aeafac6e1036dce05c4175447e9598c6f9209bff45750e6937b3b9"
+    },
+    {
+      "path": "core/crates/mh-pak/src/equiv.rs",
+      "sha256": "989cc7344769fd04cb01377ef924eb16343180269a802a403da1f40b837a5263"
+    },
+    {
+      "path": "core/crates/mh-pak/src/lib.rs",
+      "sha256": "1fffb904322fd731770fb2e116368541c3df356e546ae2808c2d970fb64d0757"
+    },
+    {
+      "path": "core/crates/mh-pak/src/pak.rs",
+      "sha256": "23494e4236dba22d3f5df6887d856e90e7b1e8b280f7f809ff4dc1b08212ba8e"
+    },
+    {
+      "path": "core/crates/mh-pak/src/pkg.rs",
+      "sha256": "656e4cf59e4644d0e0d030ff1fec7c1d131cd13eb0431cba42f8ee1a8e951ddc"
+    },
+    {
+      "path": "core/crates/mh-pak/src/reader.rs",
+      "sha256": "06877aab2aaf455ba7f74077bce9b3afe0db6b05b60885dd1f97f6706f2bacb8"
+    },
+    {
+      "path": "core/crates/mh-pak/src/vfs.rs",
+      "sha256": "d1d85edcf429e0a6a0247fbb59e9b4a523d08c4dedb537cfaf96261a1f9329de"
+    },
+    {
+      "path": "core/crates/mh-pak/tests/equiv.rs",
+      "sha256": "30916c55d23edb70d5a73dace5fe67041652b2c8d785aef191a84cba417f6f4e"
+    },
+    {
+      "path": "core/crates/mh-pak/tests/pak.rs",
+      "sha256": "2882b4818d2934834c657e231c7dcf11e404ad877c93115aaebdfb5e1279c08a"
+    },
+    {
+      "path": "core/crates/mh-parity/Cargo.toml",
+      "sha256": "78036c22ff100fde65fe13fcd54cebfca4d1207291db7c8c1331450d46d81777"
+    },
+    {
+      "path": "core/crates/mh-parity/src/lib.rs",
+      "sha256": "cbb5748590ea15465c7d729c68cba6c9bea04c0f639629a8d536d1bc6d595d27"
+    },
+    {
+      "path": "core/crates/mh-parity/src/main.rs",
+      "sha256": "defd4253bbcdd9ed3326a3e632947eeb2513a981e0a5c0fa1b62c21c6922735a"
+    },
+    {
+      "path": "core/crates/mh-parity/src/modhooks.rs",
+      "sha256": "34ab8ad50ce5b682c9967dce99e99a256435dfc79e3db184aec1a1bb94758f80"
+    },
+    {
+      "path": "core/crates/mh-parity/src/source.rs",
+      "sha256": "b37e4bf780c6a04f9fcb92ae2678f60537e16339b3ed6987008c729581ef668c"
+    },
+    {
+      "path": "core/crates/mh-parity/src/traced.rs",
+      "sha256": "ab0d73583dc5c0bd5629c23e9b368056d9630ba3f3fe05d67dc5c0701cebdc45"
+    },
+    {
+      "path": "core/crates/mh-parity/tests/modhooks.rs",
+      "sha256": "1efa73db63d1a435a715858bc9677e00bb8d187f8409afee3c502f288b94b192"
+    },
+    {
+      "path": "core/crates/mh-parity/tests/probes.rs",
+      "sha256": "7c9a2938f4fb4d8c50dee4a023fd2157850a9cfc2945bf4fe9b4d02fd75e0a4c"
+    },
+    {
+      "path": "core/crates/mh-parity/tests/source.rs",
+      "sha256": "d5017b6d44b84a7cd4601e08acaab651ef5fb15f32f3c703cb2e5a6ad7d8ceb2"
+    },
+    {
+      "path": "core/crates/mh-parity/tests/traced.rs",
+      "sha256": "09293b287151668a7754592f2e96666e58652b9ff915a500a64100cbdc3bd505"
+    },
+    {
+      "path": "core/crates/mh-physics/Cargo.toml",
+      "sha256": "4c665ebf0f354c5c639da431e9d3c26f5f2f57d16210bcb8c7770efa4a04804e"
+    },
+    {
+      "path": "core/crates/mh-physics/native/bridge.cpp",
+      "sha256": "dd6824f89584aa368b835f3403c2b24c1db9fe53eeeffeb5f8087d5b59e65e74"
+    },
+    {
+      "path": "core/crates/mh-physics/native/validation_allocator.h",
+      "sha256": "5e85ed2d82396e97cd3695cc145075fec5cfe71eed29adb1d1f1f8da2fb12638"
+    },
+    {
+      "path": "core/crates/mh-physics/src/cooked.rs",
+      "sha256": "3b8d18f5ddbc0f566d2ef5e40bc491b2c1b110b1c700f17598ec5f6321308ca9"
+    },
+    {
+      "path": "core/crates/mh-physics/src/lib.rs",
+      "sha256": "e3f114e4cac4a94411e2cf5eb3d8f07200396d5f6b3b88c6f54715eb19d997a6"
+    },
+    {
+      "path": "core/crates/mh-physics/tests/cooked_original.rs",
+      "sha256": "fb5d2bbffc4ebf7acea1f692ebb2b47cd1fb6b41446a092e7daac490b944098f"
+    },
+    {
+      "path": "core/crates/mh-runtime/Cargo.toml",
+      "sha256": "625a8ca4160d782470d018936344b725b914ee38bbba872bac0f8e77dd329741"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/armory_host.rs",
+      "sha256": "58dc7a299a6c95064f570674757cabe61667064e52b4c3e5bd2f0e6943183388"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/bridge.rs",
+      "sha256": "f083a7fe5732e89688174ea2dd11e63bc3c55c3709934c7cb71359a46ec67c55"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/camera.rs",
+      "sha256": "20275ef3ecebc2047fbe5c3d29b6bfc30e29c07da9c5183676c9d80b67a976c8"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/combat_timings.rs",
+      "sha256": "3a143af0980c45e729ff5fb8612c2f0ff2fafbd844f854e90c4ac51c8d1d7357"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/devmenu.rs",
+      "sha256": "7227a1f44b0110c6210c6689b43c8c462db18cfdf99b9f3e385229f4104600ce"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/equiv.rs",
+      "sha256": "4242814190fb25ed93f653595ec7bd8936c59eb005d50702b182613b8be5a040"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/fighter.rs",
+      "sha256": "8396a5001da68ccfa568f53d9e1ca3099b1970e5ccd77131bd89786866da11c7"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/gameworld.rs",
+      "sha256": "53557b21066b9a032d397fc384fb6c98db1a81bf92ddc07a84e6149038e4446c"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/hud.rs",
+      "sha256": "583ff582a93a8d965677705b51eac654dc87bec4eeedfc886b54f0dc992dcfda"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/input.rs",
+      "sha256": "02ee753c9fbd42837769ac7047096d44dcc901376ab803dfc1860dfb30eb1b2c"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/level.rs",
+      "sha256": "e7e20889cb0441cebe918d189232cf2498cc6f64fd14606e904eb74954969da5"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/lighting.rs",
+      "sha256": "b388ac4bd08953c9f475aed44549357db3f11ba77c6ac7e28b69ee806838c031"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/loadout.rs",
+      "sha256": "0208ae8eac5a2d6fa891299f1abdd9958e90bd287f9aebd6b9d2a454cbd98a24"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/main.rs",
+      "sha256": "31050d1737543ac3d3af7808165a2c2ca4cd3be58d43918b2171135bb62486dc"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/material.rs",
+      "sha256": "b7cf031eea2825ccce1724fc9eec53bd219c6a8898361b6e3e1f0f1d581a46de"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/memwatch.rs",
+      "sha256": "7c52b8c1cb102938d507f90b66d9d102a4902e7447040af8a44847cbf5383e62"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/menu.rs",
+      "sha256": "49dd8a4d1a4f0e75a6a068fc9128ce4e90212f5878226f542d718428ec40f834"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/onhit.rs",
+      "sha256": "731883a5ed46375c272e38a24191950d8ee82b4e0aed83cb21abdea718998086"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/pak_fighter.rs",
+      "sha256": "bc23257ab57d6eaef14f839a9566f2afddfe566850d9aeaf0a576ac3f043defd"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/paksrc.rs",
+      "sha256": "cac754bbd89bd1798b647a6ff51247fcff047844599c652d6994e010f745d0b8"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/paths.rs",
+      "sha256": "6f3730dc63bdd9be33e47b7d070dbbb5af31355cc521d8eba9ecdfe1ca7e4ab9"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/plan.rs",
+      "sha256": "950d1e4c4546ceeb78c968b912c1117610f9f7b28c6cfc11251c07a51cd1d595"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/reflection.rs",
+      "sha256": "c23f036e06766fae517ff4e1022ba0578cb5c96fd774e89e2c687ab1e14f596c"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/script.rs",
+      "sha256": "fb949b795ce28bb1c63c9ddd744e8776446242bd7c67609b15abab04fb59a7ee"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/settings_apply.rs",
+      "sha256": "a6051243e5c027cc04cef9203c0b2d8d14cd7f73b2015d14a24a5720355d7076"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/shake.rs",
+      "sha256": "4b4d7b1b52a995c7397294f550d61de4d68676bcc8e288e3279dbb83ad9628c2"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/sim.rs",
+      "sha256": "d92ca6395cef0ebd4555ab33f249e364f8f00fd783482eccc2e7a6fbe4f27acd"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/sim_core.rs",
+      "sha256": "12211d9ba3ff4860140ed19fa52df74936be0b5b6a5dbf1f74cff1a4b5643b3b"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/sim_mh.rs",
+      "sha256": "8b7e93b94151c4c577440ce2f10d7f593c4e919a22b38593f7d128e68edb6edf"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/sim_net.rs",
+      "sha256": "05f3c289be6d3ff78501f1980c7e594834209982e5a7419e750d0c5387ee4584"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/source.rs",
+      "sha256": "cafe4aa7810dbafd4af2f590cd63a5fb4023417645527852f8f26efd670fe68f"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/specdata.rs",
+      "sha256": "637d9aeb018102fd107cf24766464d8285d7c2f8931a67a7514f17bb9350f90a"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/ue.rs",
+      "sha256": "de4dee0ce57d2d6a753c8f5d9ac4a5ba86a06d09d2f9905a911b099f6fef63ae"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/uepost.rs",
+      "sha256": "a3dbaa18f2d65ceb65c73271d4769ece28e535c5d5cd95e9d61f3ef802ecc62d"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/uepost_render.rs",
+      "sha256": "1dc36e8ae848229a9a0240134b48d3ac16db24e891f6d464f3796e30ce98e06e"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/uesky.rs",
+      "sha256": "d004ae9b947549b3f204c2d0c696d131d255ba877a4c23d5b70527b7943b1eea"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/uetint.rs",
+      "sha256": "e1f6235a1b5e89479d0947fcefc6fbaeb290a47f4d30fb80db6a357220dfccf4"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/usersettings.rs",
+      "sha256": "83e2300fd8fa299eda496ee695a966c5b4dc4f9bd06b45f13833f4c56fb89cb0"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/weapon.rs",
+      "sha256": "4e422f0b8beb2acca0e08f0a33efe15bee887f09656cbec8d9d08a7d278dbb6a"
+    },
+    {
+      "path": "core/crates/mh-runtime/src/weapon_blood.rs",
+      "sha256": "38f3be1244711530c9eb60270011445eb822625f071c97863c7312addc570cc6"
+    },
+    {
+      "path": "core/crates/mh-sim/Cargo.toml",
+      "sha256": "5deb5209e76d5a86ed0b9403f65687cf6271e8db226c63682da8dadaffb763bc"
+    },
+    {
+      "path": "core/crates/mh-sim/src/additive.rs",
+      "sha256": "66e8fdeff06be89e3941cefaf2f6d28fa5b84dce8d1fea5059ab2e245e135db0"
+    },
+    {
+      "path": "core/crates/mh-sim/src/air.rs",
+      "sha256": "d45a1dd3f543b3150eff9d5a38ea83ff9d94dfbb24977675889c7d07a89cf53c"
+    },
+    {
+      "path": "core/crates/mh-sim/src/anim.rs",
+      "sha256": "6d4ed6db8d51aea597abc03ffeac4074d7334f4de16e21c56c0af9c0ef2a6084"
+    },
+    {
+      "path": "core/crates/mh-sim/src/animgraph.rs",
+      "sha256": "96e0026f89c7ca18e0ea1da9a8d3913de84e634fdff66a1fcadb8d971862f11b"
+    },
+    {
+      "path": "core/crates/mh-sim/src/blendspace.rs",
+      "sha256": "c79d6408a966346330ef30f0157255427b5e9ba40d9390a3f94f044069a2d92b"
+    },
+    {
+      "path": "core/crates/mh-sim/src/climb.rs",
+      "sha256": "c421d05cc2fdc14a49ee4b5401cbc4ffbf4ad11faf8de606bdcf875a1ffe21de"
+    },
+    {
+      "path": "core/crates/mh-sim/src/events.rs",
+      "sha256": "836dd316ec18e6b596a753bf4627358e61a211bc2f07e866459c232f04ca168e"
+    },
+    {
+      "path": "core/crates/mh-sim/src/flinch.rs",
+      "sha256": "df9d14a0a7b836c9c4f756bf0761d6e2bac72ef266007941de102090f0eb9ae6"
+    },
+    {
+      "path": "core/crates/mh-sim/src/grip.rs",
+      "sha256": "dc750a4f8faa9d9335681c9af73406090d553525a0feeb115e4168b0555fcef0"
+    },
+    {
+      "path": "core/crates/mh-sim/src/grounding.rs",
+      "sha256": "25c0b1267ba3186674df1acf8a767c5b06e2f138e7f562ce7439824d93a82d1f"
+    },
+    {
+      "path": "core/crates/mh-sim/src/horse.rs",
+      "sha256": "348ed7fa898cc337cf5d79c1f551ed5d8063a08266959b17a5f4e47171756dbf"
+    },
+    {
+      "path": "core/crates/mh-sim/src/lib.rs",
+      "sha256": "41218a474db954b5921e1b32d89c6c8358045253beabfc122da6aeaef87bd5ef"
+    },
+    {
+      "path": "core/crates/mh-sim/src/load.rs",
+      "sha256": "104d069a93e5ce8085e592e9f66c2bd69d9157f7fde93ceac82f41cd16f6cee9"
+    },
+    {
+      "path": "core/crates/mh-sim/src/lower.rs",
+      "sha256": "173a0260e801b9c17d8c3d4c9a0ba719434bdba3e235b704a17eba28048b3f45"
+    },
+    {
+      "path": "core/crates/mh-sim/src/mode.rs",
+      "sha256": "08d88a14eb6ac0f4813807294ee1fe4ef806fecd82f0ba252e139c767f5c844a"
+    },
+    {
+      "path": "core/crates/mh-sim/src/noise.rs",
+      "sha256": "9befa38bd20a58116342fb1c219f6b7f5303886518b919f050ab307d50b4d18f"
+    },
+    {
+      "path": "core/crates/mh-sim/src/pawns.rs",
+      "sha256": "0832495de1575c3a86705836672ac4d2b7a2be06d48a8695325e035711cbc426"
+    },
+    {
+      "path": "core/crates/mh-sim/src/physics.rs",
+      "sha256": "7dfa1e478a8eddea6edd72308d83d74d2766e3da16b360907154fa64184eb4b1"
+    },
+    {
+      "path": "core/crates/mh-sim/src/pose.rs",
+      "sha256": "2605cd40e348640222b2cda8050d4966e716aac2e17e3ad645fb693a648ca656"
+    },
+    {
+      "path": "core/crates/mh-sim/src/procedural.rs",
+      "sha256": "17382a46ce658fb0ae03a356a14a1809700d635defcaf19226b28b1b85b42486"
+    },
+    {
+      "path": "core/crates/mh-sim/src/ragdoll.rs",
+      "sha256": "0bd617fe4569679c571bc9131d923238eed41691f420da42a9e729ae89c2d4cf"
+    },
+    {
+      "path": "core/crates/mh-sim/src/ranged.rs",
+      "sha256": "6a4799cb3465d24e8dd91445ac4bcbd703045c9d2720cfee83a45189ff84e12d"
+    },
+    {
+      "path": "core/crates/mh-sim/src/sim.rs",
+      "sha256": "d1179a50ea85b5525258bcd89fb6b41b8bdc10fb0a09a04c2e36862908ea6aaa"
+    },
+    {
+      "path": "core/crates/mh-sim/src/spec.rs",
+      "sha256": "900ccd8a06d7245275fbf023bad76272149c5a904557ccb0bac835247dd6b467"
+    },
+    {
+      "path": "core/crates/mh-sim/src/trace.rs",
+      "sha256": "7ccb05df87e0e125387dda881fef05b6abd31526cfeef5e12907a13ccdc59547"
+    },
+    {
+      "path": "core/crates/mh-sim/tests/fp_motion_probe.rs",
+      "sha256": "e3a82704be0aa68ee9524ee8a560305aae1f12bb6486754acebab060a9f36eb3"
+    },
+    {
+      "path": "core/crates/mh-sim/tests/fp_probe.rs",
+      "sha256": "4b07c81ab6d085b35c407a17051d3e69b1d5ab18b27acf4bb959d39d8b718bf6"
+    },
+    {
+      "path": "core/crates/mh-sim/tests/grip.rs",
+      "sha256": "fae43dc6541e29dbd169e6b17b4fb7873661e5aded4850e8babc07317ba32836"
+    },
+    {
+      "path": "core/crates/mh-sim/tests/movement_stop.rs",
+      "sha256": "e00eca3a0e4869584203a49a5263aaf163717e13ec8309795ac5b10553b383d9"
+    },
+    {
+      "path": "core/crates/mh-sim/tests/pawn_collision.rs",
+      "sha256": "e801848f2a32a0e061c8eff51e8db4268becc2e931b82dc966c333f670e55086"
+    },
+    {
+      "path": "core/crates/mh-sim/tests/probe.rs",
+      "sha256": "853d4add777b7fc3e41ba0618ee10d4a36e271229ef7bf4c1cebe07f10024f63"
+    },
+    {
+      "path": "core/crates/mh-sim/tests/release_acceleration.rs",
+      "sha256": "b603c68f5bd6882d91b828632b538621c067dd303712c78276b9174666258093"
+    },
+    {
+      "path": "core/crates/mh-sim/tests/sim.rs",
+      "sha256": "470333667bce2ae286d5e973feab9e04156226dc44d97f48b8947d0e9dbd5019"
+    },
+    {
+      "path": "core/crates/mh-spec/Cargo.toml",
+      "sha256": "9c11271479fa260317d3d809ba98f56208861b3e681a4aad033486fd3033e18b"
+    },
+    {
+      "path": "core/crates/mh-spec/src/lib.rs",
+      "sha256": "9446d40d315deeb4d5fbdee81ee94bba36d834e080a964249ec7185cfde84292"
+    },
+    {
+      "path": "core/crates/mh-spec/tests/consts_crosscheck.rs",
+      "sha256": "160036731a6925a638ebc38604665b73ffbb54201869cb5e240a4cf0edeb8b8f"
+    },
+    {
+      "path": "core/crates/mh-spec/tests/consumers.rs",
+      "sha256": "ee840f022f6d90c3387ecf97aef2cca6a74bc667943d63e6beccd2511ba20a3a"
+    },
+    {
+      "path": "core/crates/mh-spec/tests/spec.rs",
+      "sha256": "3ddc7b91edb5242cd3e8f7f9751408f93ddf2f53d33d34860fc5c3b162def13b"
+    },
+    {
+      "path": "core/crates/mh-ui/Cargo.toml",
+      "sha256": "4c08cf0b8a6cd03f862dfaad9b58e355eda16a3a93efe868ac6aec4e5fea77e6"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/armory.rs",
+      "sha256": "269ee2c27375c21037aa41314da4698ddf3f46e59670177a5ac0fb8ee1801bab"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/armory_probe.rs",
+      "sha256": "3d783fed701a64493e9a5b5fc80bcc95bc20047c258ac5cfec00384d2509c472"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/dispatch.rs",
+      "sha256": "470432e9bb3c5ccc94e4b4a1c2bbcb341b04232c38766cf93466827292eb7ac4"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/evidence.rs",
+      "sha256": "f1a29f3d6bd1463b4f80836ae80160ee395192764d23f241b605c159c4496f31"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/funcsig.rs",
+      "sha256": "c0a24f5c9b4fa97f145f9222294b82e4e0db8af3713a606bd509c3dbcfff70da"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/hud.rs",
+      "sha256": "53be8e9c15f76f1c2d5d332c65991b21617acb6ce81b7054e6505bfb4efca7dd"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/probe.rs",
+      "sha256": "53171ebf7d6f7bb80dc0d9a68c549fd7a25c865c8d0b29a5c5467c67d4bcbe0b"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/qa.rs",
+      "sha256": "10fd2649d4a480d994692d1831735eb1a88819823010cdc2c29630ec08aecf51"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/real_input.rs",
+      "sha256": "c80a4048ffc7c64858d8dfce951db41710df8a063de588b86a5873b385b2bec1"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/screens.rs",
+      "sha256": "4209fa956b318217a8de68d4922c2935dd83b10dae380baf2da28e0007f53604"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/settings_dump.rs",
+      "sha256": "059c548d9230a070cb82fbeb8249d75ea5be4d8a43c75279446e75f15019f35a"
+    },
+    {
+      "path": "core/crates/mh-ui/examples/statusbar.rs",
+      "sha256": "4db36342b483121fa6298aee0600c54293a5a941a8e23220bae9c908a7208127"
+    },
+    {
+      "path": "core/crates/mh-ui/news/news.md",
+      "sha256": "ce271ec1ac782867dfd3b85bdf92ea4d9ae05e988d1a4bfad5528dbc45dfe879"
+    },
+    {
+      "path": "core/crates/mh-ui/src/anim.rs",
+      "sha256": "a5a35db65a8a746e56418981520a336ee6fb0d54c2798c7652cf8c784b667bce"
+    },
+    {
+      "path": "core/crates/mh-ui/src/armory.rs",
+      "sha256": "4b34a2ef4e215b66b9d06c3127230ab9516118ea97d8ff056ba5e615a3ad17ae"
+    },
+    {
+      "path": "core/crates/mh-ui/src/armory_natives.rs",
+      "sha256": "aff29d1e59e8630bfd773f1f2bc206f44b3749481222415f8cc51bc3eed76b95"
+    },
+    {
+      "path": "core/crates/mh-ui/src/evidence.rs",
+      "sha256": "cd43cd3e6f85194117fa1ea963d5e3f49a6296c0ed1e83f8313b746c50964b14"
+    },
+    {
+      "path": "core/crates/mh-ui/src/game.rs",
+      "sha256": "dbbfebdcaf1a0474cdd16d800f77897dd4f0f1861c88b9056d667d274715f929"
+    },
+    {
+      "path": "core/crates/mh-ui/src/host.rs",
+      "sha256": "c907b7259e71dd60f7f3a014c22d54dd0dfb506ba274e5868e922afbd894f5ce"
+    },
+    {
+      "path": "core/crates/mh-ui/src/input.rs",
+      "sha256": "038b4856e8685f4d7b8053f6ab79b6f6b603c0fefe50b044c66cdfc81b086800"
+    },
+    {
+      "path": "core/crates/mh-ui/src/kismet.rs",
+      "sha256": "4a32bdc6be6bfb362d4d9427243911435fcc7d5a511957b7856a10e559e220b5"
+    },
+    {
+      "path": "core/crates/mh-ui/src/layout.rs",
+      "sha256": "a98f10ff9a9b50902811667e9e7215642ece850a76a6889c83d0901ef3dbad54"
+    },
+    {
+      "path": "core/crates/mh-ui/src/lib.rs",
+      "sha256": "e0a9d20641e535375b296e8bd7e205adeeba09b206ae8116c4fbb1551bce88f9"
+    },
+    {
+      "path": "core/crates/mh-ui/src/menu_data.rs",
+      "sha256": "999a3575d1cc169c9e387488ed927606757d089ee6f16d79d14b64c455741082"
+    },
+    {
+      "path": "core/crates/mh-ui/src/model.rs",
+      "sha256": "00611f02eb7f30ef8072c6479bca44b33cd9fb865663f5c762fe527e0c9c7551"
+    },
+    {
+      "path": "core/crates/mh-ui/src/models.rs",
+      "sha256": "70046c94b0a7d843d3b861f454756c87885797e4814399d2906f3f97142532ea"
+    },
+    {
+      "path": "core/crates/mh-ui/src/natives.rs",
+      "sha256": "4ef2abbb5545d455c6d07eeee0b1112bb2b2a8f07e31182885cf1f03fa0973a2"
+    },
+    {
+      "path": "core/crates/mh-ui/src/news.rs",
+      "sha256": "729a0544361e5d1ac05b0d02d1dc87703e45734b25c3ad02760ac23e0d8dd995"
+    },
+    {
+      "path": "core/crates/mh-ui/src/real.rs",
+      "sha256": "4d793bb753671eff122130f213a254499c7c217be2af0d1d0dd99efcfb1c3c09"
+    },
+    {
+      "path": "core/crates/mh-ui/src/settings.rs",
+      "sha256": "3db38621ff7b5b11a196cee5ce09dcb539689d11374f94510429d06509c59ebc"
+    },
+    {
+      "path": "core/crates/mh-ui/src/slate.rs",
+      "sha256": "d1663ed851613b11c7303ea2573bfadea8328a19e6cc66aecfdcd9731f24c5f6"
+    },
+    {
+      "path": "core/crates/mh-ui/src/vm.rs",
+      "sha256": "269368ec87a9a4fc5f6ff8d1f1be56b673fceb247d2ba6412f66e30a788dec4f"
+    },
+    {
+      "path": "core/crates/mh-ui/tests/armory.rs",
+      "sha256": "9e85509aa911dc3ffe67935cd819e7ceee4f31cfd031550bd54322e36f5865ae"
+    },
+    {
+      "path": "core/crates/mh-ui/tests/real_ui.rs",
+      "sha256": "3620f209e3a1cb58e6b4f35aee2e230e50b74bc80deee00c21bd7d9798b5b6dd"
+    },
+    {
+      "path": "core/crates/mh-world/Cargo.toml",
+      "sha256": "312b52709d978e71d534b0b2de8ea979f4c201a1481e5fb2896f34fbc1336f1b"
+    },
+    {
+      "path": "core/crates/mh-world/src/capture.rs",
+      "sha256": "b93b2906e3d5e2cfd656dd36b39711e7fad044bb8d3218057d8729c1a61dc402"
+    },
+    {
+      "path": "core/crates/mh-world/src/destructible.rs",
+      "sha256": "f6fe427fdfc1e026204129edef8593d03af79f7b4677c8fb9ca77060241e432e"
+    },
+    {
+      "path": "core/crates/mh-world/src/door.rs",
+      "sha256": "4069c3ab71314f15cb1ea64b28b138b102bca4ca4817aec9a398247f06ea767c"
+    },
+    {
+      "path": "core/crates/mh-world/src/fl_bridge.rs",
+      "sha256": "6448c2e211a0217ab2ba60959e567006e3170b0f45503e9d7a08e09d6370b8aa"
+    },
+    {
+      "path": "core/crates/mh-world/src/frontline.rs",
+      "sha256": "484fbfd624488de3c3e08e6c3b7f403842688e7824ba55f353d168dfa4bcb5c2"
+    },
+    {
+      "path": "core/crates/mh-world/src/hazards.rs",
+      "sha256": "a37847394e405a243d831a8223c3bfe43ee288a681921a1186af9d66a3572566"
+    },
+    {
+      "path": "core/crates/mh-world/src/interaction.rs",
+      "sha256": "2e748075838c7bc31471fb6d13777c1ad794c7a10e3babae7e5ed31911a3bb5b"
+    },
+    {
+      "path": "core/crates/mh-world/src/ladder.rs",
+      "sha256": "f7e4ebf56aa3d4b14926f154309a03c1e5e61a9bab13b020515c1a74900ecfcb"
+    },
+    {
+      "path": "core/crates/mh-world/src/lib.rs",
+      "sha256": "45ddf2b87c75d2dddb2a01ba810c67e95965fd0a76bcf5f0310aab4545120fd6"
+    },
+    {
+      "path": "core/crates/mh-world/src/pickups.rs",
+      "sha256": "8882e095792f71851df0292d2a0e1a5d002d29a726589bf8ca015875aa0893e7"
+    },
+    {
+      "path": "core/crates/mh-world/src/progress.rs",
+      "sha256": "480ce3c590c1c280122decbeef15750d4a6fcd349ab6d344620ea51f60f81718"
+    },
+    {
+      "path": "core/crates/mh-world/src/props.rs",
+      "sha256": "c63bcaa51003c24283da97509c1e3db390c9325e68cc00e0fae746a2aed1a9df"
+    },
+    {
+      "path": "core/crates/mh-world/src/pushable.rs",
+      "sha256": "2f5f7305f8eb3e9e91f6be805d9a61042e4be8e18fb3425b5f37214482ca1472"
+    },
+    {
+      "path": "core/crates/mh-world/src/replication.rs",
+      "sha256": "8f6e4f78387c8d5fe9c8d7af2405112e66d3a217845550dae903d97d7382c448"
+    },
+    {
+      "path": "core/crates/mh-world/src/spawner.rs",
+      "sha256": "fc9622e9f5ba5ea748e486d77b044a697b1882f9edf79675228491bbf85fbbb7"
+    },
+    {
+      "path": "core/crates/mh-world/src/spline.rs",
+      "sha256": "e756c97f779ab1014d9786369573abb7294d218e4c2253abf62f7f0d06d0cd42"
+    },
+    {
+      "path": "core/crates/mh-world/src/world.rs",
+      "sha256": "b829adf4130915253c8ecd793f034643566e2f056c66009c8e48e59a3fb2734d"
+    },
+    {
+      "path": "core/crates/mh-world/tests/explore.rs",
+      "sha256": "4389f4ac4aebebdb21661f7db363aa8863339c9cc643c048f31e0068cdccc27c"
+    },
+    {
+      "path": "core/crates/mh-world/tests/fl_e2e.rs",
+      "sha256": "c3f520919f6f88f5fdd541634fa075d99e590021f7772e558e92a6fd29cdd0be"
+    },
+    {
+      "path": "core/crates/mh-world/tests/hazards.rs",
+      "sha256": "b2b4ad83fbe98f349529e067432217e07960c1d97f3d922dd11391dd0a53a17b"
+    },
+    {
+      "path": "core/crates/mh-world/tests/smoke.rs",
+      "sha256": "73c9e0591300654f085f7451f96c9846bbd3c340a5324f4e748938907adbcabc"
+    },
+    {
+      "path": "core/crates/mh-world/tests/world.rs",
+      "sha256": "2231cc1875666ac594b23f038af2e75a617bbeccedac1d83f883e865626bb3cc"
+    },
+    {
+      "path": "core/crates/mh-world/tests/world_r2.rs",
+      "sha256": "005057d129bc260590f1d0d5fc1f9efb1ff7c21e077a77a40854285afc529a93"
+    },
+    {
+      "path": "core/crates/mordhau-core-ffi/Cargo.toml",
+      "sha256": "cc0a1c07d07c11ade83ccf6bfa32bf6348d99a2456c0ef892bc805a7bef698f9"
+    },
+    {
+      "path": "core/crates/mordhau-core-ffi/include/mordhau_core.h",
+      "sha256": "cfcca1523690ba2ea0cdb6fb41139f6faa56e050618bf4cb2327fe9235e14038"
+    },
+    {
+      "path": "core/crates/mordhau-core-ffi/src/lib.rs",
+      "sha256": "1c235b08b59139cbcdbf1c766d52b213f38901dfc32a98947e399d8f460d9d1d"
+    },
+    {
+      "path": "core/crates/mordhau-core/Cargo.toml",
+      "sha256": "78f2a8609e3678f8307052ad30e1fec63153fa83ccb393452d102d2176150e94"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/attack.rs",
+      "sha256": "7c009a27f61c2574f675d501f9b39f01fbc25809456a8728ddcb4d6ef7fd8a9b"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/blocked.rs",
+      "sha256": "867c84ff0aba76fb8c5f6fada9c07b7a28d3e08339144831f491b872d64fd08b"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/climb.rs",
+      "sha256": "d91ed65253f16ce1d5cb6d5c10644b0be81885a3a71fb974b74e781f297daeed"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/damage.rs",
+      "sha256": "d2293537f0155a65379ea7da10848dca849415bd236231e143854e429c787234"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/enums.rs",
+      "sha256": "a500907d0859820eb6494ec104647ddc03e72bda5ab9d64f12cecda35b243ea2"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/equipment.rs",
+      "sha256": "5fdbb276b041401cd298e4527b79a716bc59df4055025dc8f194d72e7464adde"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/exe.rs",
+      "sha256": "1e4738a2ca24952059444b362d7d2e68c89c0d42a2d8a075de33b29611f6c6ca"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/feinted.rs",
+      "sha256": "919c8ccece0d59a75400b9d97285b89224fff9064be76da128a374ced34ea28c"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/geometry.rs",
+      "sha256": "135c1cd211b005bd8e6b1ae139d1379b7b4b57ba3e0e40948ba05b3e4d6bf705"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/horse.rs",
+      "sha256": "d262e0cdc07f6e03b1e46e333b76008bbfa40125afec125e6019781bdc92479d"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/melee_hit.rs",
+      "sha256": "8d40c225d7fbe419b53f0c3b96d50c0c9a4dd299692e9332c51cf6a669c68a06"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/mod.rs",
+      "sha256": "a2fcfc8814619072f3068c6055462fffbf1faf9d6456b7c14e5a924776e3f312"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/modeswitch.rs",
+      "sha256": "833eac393c5921f3044dc82b20e0bd27f715ea907c3bbbb9d6854644b88453ec"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/motion.rs",
+      "sha256": "4bba7f3a3729ec8bb79f136a352ca0face0833383c80c8beeddb6a914bc0018c"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/net.rs",
+      "sha256": "4eabe1694cb54337a354762f784423b399a0770514bf3fd12480be34955d9226"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/parry.rs",
+      "sha256": "1d6ca188c76b9465c84640200e01e7e3cbd7cd6a9bf31db5a01261ee1cdfbe55"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/ranged.rs",
+      "sha256": "e94495b133300c2d9e8f47a59d3c853982474e6cdcbeccd96b87e2ec729984ab"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/rangedmotion.rs",
+      "sha256": "a848f624da715779b0cf41c90730e56f548a5190b18a01452a56da1c21389f29"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/react.rs",
+      "sha256": "692f8899de1a7e379042ef4c05c1b0d988c71872304c66d4beb93604ab0808bf"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/system.rs",
+      "sha256": "efaf91e87b40e7a1cf1138faae6c0b0d6d6e7d946fc632bb2c5e7fe84c8e740f"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/tracer.rs",
+      "sha256": "a52653ab491317c152dd0edb0465c816aa1a676122f93e49a84f86d35ee75e74"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/turncap.rs",
+      "sha256": "8a39f59fedc938dfdfecef4c53dbc9598c1b055af84fdfab531f173679365a4d"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/world.rs",
+      "sha256": "1d10405b8cc11e0fc07d806be4ed96a9393c7aa40facd8548896dd3ac337cd9f"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/combat/worldhit.rs",
+      "sha256": "d6c92cc5cc333e2348c5c9bbce5bd720830a1332a1c05887d7a55cfafe7d2a54"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/data.rs",
+      "sha256": "3f0c61a03a7579cbd7a0bc7991917817624779765597f72a3ec97c400fb8beff"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/lib.rs",
+      "sha256": "8776872f88646b17b6402848b09651b4f002174419856a77c854f59c63f48741"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/snapshot.rs",
+      "sha256": "21da12eff20c67683e93d34848a4b83313417f8f5e5bc9d40b48357bd58507df"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/timing.rs",
+      "sha256": "f731151c233b81b6f09f4ebfd3fca64538f2d5f122175c19597d3b4c1ff88289"
+    },
+    {
+      "path": "core/crates/mordhau-core/src/ue.rs",
+      "sha256": "2630c01878dd6e38e254b3740082df24930363191cf6b9842fffe8265a2b842d"
+    },
+    {
+      "path": "core/crates/mordhau-core/tests/exe.rs",
+      "sha256": "b8cc64fd859e372da0f0e9f015d0b1deeffbf0043fb0648d488473d43fdc8975"
+    },
+    {
+      "path": "core/crates/mordhau-core/tests/geometry.rs",
+      "sha256": "d45f53ff66748ab82b66a1e8ea63154a6a80635ab42d60d1d16919e850a7a610"
+    },
+    {
+      "path": "core/tests/golden.rs",
+      "sha256": "d0e4c61db6a84d8a45320795f6dbbd6f40f158afd81b210eb538c33cd936b935"
+    }
+  ],
+  "excluded": [
+    "core/crates/mh-assets/shaders/ue_tint.wgsl",
+    "core/crates/mh-character/tests/scenarios.json",
+    "core/crates/mh-level/placements.tsv",
+    "core/crates/mh-runtime/src/shadow_capsules.json",
+    "core/crates/mh-runtime/src/uepost.wgsl",
+    "core/tests/scenarios/combat.json",
+    "core/tests/scenarios/mode.json"
+  ],
+  "fork_changes": [
+    "New original-install gate for launcher and direct runtime",
+    "External local-cache capsule and shader reads instead of embedded asset payloads",
+    "Fail-closed combat startup; stub/core/golden/network backends disabled",
+    "Triternion credit, original-game support/purchase policy, distribution notices and release blockers",
+    "Source-only tree audit and pinned read-only GitHub Actions template; not enabled because the current login lacks workflow scope"
+  ],
+  "snapshot_scope": "Rust workspace source; original game and generated data excluded; incomplete consumer importer, not a playable release"
+}

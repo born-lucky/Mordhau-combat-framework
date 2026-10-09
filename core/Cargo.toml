@@ -1,0 +1,18 @@
+# Rust rewrite workspace (state/rust_brief.md, docs/RUST_CORE.md). Every crate under crates/ is a member; build only
+# through `sh scripts/cargo.sh ...` (machine-wide lock, 6 GB commit floor, -j2, shared core/target).
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+publish = false
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.dev]
+opt-level = 1
+debug = 1

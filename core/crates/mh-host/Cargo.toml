@@ -1,0 +1,16 @@
+[package]
+name = "mh-host"
+description = "Shared host loader: build a world's data from the spec matrix (data_gen/spec) + the user's paks, for the FFI, mh-net-node and mh-runtime (sheets builder; docs/SPEC_SHEETS.md Consumers)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+mordhau-core = { path = "../mordhau-core" }
+mh-spec = { path = "../mh-spec" }
+mh-sim = { path = "../mh-sim" }
+mh-pak = { path = "../mh-pak" }
+mh-mode = { path = "../mh-mode" }
+# character_records(): SpecCharacter (mh-character feature `spec`)
+mh-character = { path = "../mh-character", features = ["spec"] }
+serde_json.workspace = true

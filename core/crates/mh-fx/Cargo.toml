@@ -1,0 +1,26 @@
+[package]
+name = "mh-fx"
+description = "Bevy effects plugin: Cascade particle systems (mh-assets particles) simulated on the CPU and drawn as unlit billboards, triggered by sim events"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+mh-pak = { path = "../mh-pak" }
+mh-assets = { path = "../mh-assets" }
+mh-ui = { path = "../mh-ui" }
+# map ParticleSystemComponents (map_fx.rs); no collision world
+mh-level = { path = "../mh-level", default-features = false }
+serde_json.workspace = true
+bevy = { version = "0.19.1", default-features = false, features = [
+    "std", "multi_threaded", "async_executor", "bevy_asset", "bevy_log", "bevy_state", "reflect_auto_register",
+    "bevy_window", "bevy_winit", "bevy_render", "bevy_core_pipeline", "bevy_pbr", "bevy_light", "bevy_camera",
+    "bevy_color", "bevy_image", "bevy_mesh", "bevy_shader", "bevy_material", "bevy_mikktspace",
+    "bevy_gltf", "bevy_scene", "bevy_world_serialization", "bevy_animation", "gltf_animation",
+    "bevy_text", "bevy_ui", "bevy_ui_render", "default_font",
+    "bevy_post_process", "png", "tonemapping_luts", "ktx2", "zstd_rust", "keyboard", "mouse",
+] }
+
+[dev-dependencies]
+# validates the generated particle shaders (ue_material.rs) in tests
+naga = { version = "29", features = ["wgsl-in"] }

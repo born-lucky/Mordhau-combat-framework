@@ -1,0 +1,27 @@
+[package]
+name = "mh-world"
+description = "Engine-neutral behaviour of Mordhau's gameplay actors (doors, destructibles, Frontline objectives, spawners, ladders), ported from their Blueprint bytecode and native classes"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+mh-level = { path = "../mh-level", default-features = false }
+# the ladder mover (exe_ladder: LadderInfo, closest_point_on_line, ExeMovement::new_ladder_mover)
+mh-character = { path = "../mh-character" }
+# the shared UCRT rand() stream type (ue::CrtRand)
+mordhau-core = { path = "../mordhau-core" }
+# fl_bridge.rs: BP_CapturePoint <-> AControlPoint / BP_FrontlineGameMode (feature "mode", default)
+mh-mode = { path = "../mh-mode", optional = true }
+
+[features]
+default = ["mode"]
+mode = ["dep:mh-mode"]
+
+[dev-dependencies]
+# the FL end-to-end test loads the spec matrix (ModeData::from_spec)
+mh-spec = { path = "../mh-spec" }
+mh-pak = { path = "../mh-pak" }
+# real-map climbs: CollisionWorld as mh_character::World (feature world)
+mh-level = { path = "../mh-level", features = ["world"] }

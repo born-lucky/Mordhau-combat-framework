@@ -1,0 +1,27 @@
+[package]
+name = "mh-ui"
+description = "Bevy UI plugin: UMG WidgetBlueprint layouts (mh-assets umg) drawn in Bevy UI, driven by mh-mode view models (HUD, kill feed, scoreboard, main menu)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+mh-pak = { path = "../mh-pak" }
+mh-assets = { path = "../mh-assets" }
+mh-mode = { path = "../mh-mode" }
+# armory_natives.rs: UE rotator / quaternion math as the exe does it (uequat.rs FRotator::Quaternion, FQuat::Rotator)
+mh-character = { path = "../mh-character" }
+serde_json.workspace = true
+# engine Slate brushes (FSlateBrush ResourceName -> Engine/Content/Slate/*.png in the paks); same version as mh-assets
+png = "0.17"
+# news.rs: DumbMordhauMDParser's ICU patterns use lookahead ((?![*\s])), which the regex crate lacks
+fancy-regex = "0.14"
+# same version / features as mh-runtime (shared target: Bevy compiles once)
+bevy = { version = "0.19.1", default-features = false, features = [
+    "std", "multi_threaded", "async_executor", "bevy_asset", "bevy_log", "bevy_state", "reflect_auto_register",
+    "bevy_window", "bevy_winit", "bevy_render", "bevy_core_pipeline", "bevy_pbr", "bevy_light", "bevy_camera",
+    "bevy_color", "bevy_image", "bevy_mesh", "bevy_shader", "bevy_material", "bevy_mikktspace",
+    "bevy_gltf", "bevy_scene", "bevy_world_serialization", "bevy_animation", "gltf_animation",
+    "bevy_text", "bevy_ui", "bevy_ui_render", "default_font",
+    "bevy_post_process", "png", "tonemapping_luts", "ktx2", "zstd_rust", "keyboard", "mouse",
+] }

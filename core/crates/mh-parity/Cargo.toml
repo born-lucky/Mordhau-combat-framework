@@ -1,0 +1,22 @@
+[package]
+name = "mh-parity"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+description = "Demo parity for the Rust core: the probes (port of godot/tests/parity/probes.gd) and the replay runner (godot/tests/parity/replay.gd) over mordhau-core's World, in exe-exact or reference-compat mode"
+
+[dependencies]
+# reference_compat: both numeric models in one binary (`--mode compat` = World::new_reference, `--mode exe` = World::new)
+mordhau-core = { path = "../mordhau-core", features = ["reference_compat"] }
+serde_json = { workspace = true }
+# exe mode's records: the spec matrix (mh-spec) through mh-sim's SpecBuilder (+ the paks, mh-pak)
+mh-sim = { path = "../mh-sim" }
+mh-spec = { path = "../mh-spec" }
+mh-pak = { path = "../mh-pak" }
+# traced mode (traced.rs): the Sim's movement records and the clips of its animation stand-in
+mh-character = { path = "../mh-character" }
+mh-assets = { path = "../mh-assets" }
+
+[[bin]]
+name = "mh-parity"
+path = "src/main.rs"

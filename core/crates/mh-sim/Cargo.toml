@@ -1,0 +1,22 @@
+[package]
+name = "mh-sim"
+description = "Unified Mordhau simulation facade: exe-exact combat (mordhau-core) + character movement (mh-character) + weapon traces against the character physics asset, records from the spec matrix (mh-spec) and the paks (mh-pak / mh-assets)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[features]
+native-validation = ["mh-physics/native-validation"]
+
+[dependencies]
+mordhau-core = { path = "../mordhau-core" }
+mh-character = { path = "../mh-character" }
+mh-spec = { path = "../mh-spec" }
+mh-pak = { path = "../mh-pak" }
+mh-assets = { path = "../mh-assets" }
+mh-physics = { path = "../mh-physics" }
+mh-mode = { path = "../mh-mode" }
+serde_json.workspace = true
+
+[dev-dependencies]
+mordhau-core = { path = "../mordhau-core", features = ["reference_compat"] }

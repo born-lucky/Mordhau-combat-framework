@@ -1,0 +1,14 @@
+[package]
+name = "mh-install"
+description = "Fail-closed local Mordhau installation gate for the private Rust v1 staging snapshot"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+sha1_smol = "=1.0.1"
+serde_json.workspace = true
+
+[[bin]]
+name = "verify-install"
+path = "src/main.rs"

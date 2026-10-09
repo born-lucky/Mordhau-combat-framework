@@ -1,0 +1,17 @@
+[package]
+name = "mh-pak"
+description = "Mordhau .pak / cooked UE 4.26 package reader (port of godot/components/ue/pak), read in place from the user's install"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+# preserve_order: export JSON keeps the field order mdx json (CUE4Parse) writes; float_roundtrip: exact JSON floats
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+memmap2 = "0.9"			# read-only file mappings: a pak is never loaded whole, package bytes are zero-copy views
+sha1_smol = "1"			# FPakEntry Hash check (no dependencies)
+miniz_oxide = "0.8"		# zlib pak blocks (none in Mordhau; kept for parity with ue_pak.gd)
+
+[[bin]]
+name = "mh-pak"
+path = "src/bin/mh-pak.rs"

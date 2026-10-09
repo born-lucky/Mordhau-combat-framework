@@ -1,0 +1,14 @@
+{
+  "version": "v1-staging",
+  "repository_visibility": "private",
+  "public_release_ready": false,
+  "playable_download": false,
+  "local_importer_implemented": false,
+  "blockers": [
+    "Complete EXE-plus-paks local data importer",
+    "Exact PhysX extension redistribution rights or replacement",
+    "Reverse-engineered source and dependency rights review",
+    "Clean-install startup and combat verification",
+    "Final executable and archive independent asset audit"
+  ]
+}

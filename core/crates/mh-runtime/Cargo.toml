@@ -1,0 +1,46 @@
+[package]
+name = "mh-runtime"
+description = "Bevy runtime for the Rust Mordhau rewrite (docs/RUST_RUNTIME.md): reads the game's data from the user's install / extract, scriptable oracle harness"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "mordhau"
+path = "src/main.rs"
+
+[dependencies]
+mh-install = { path = "../mh-install" }
+serde.workspace = true
+serde_json.workspace = true
+# R2: data from the user's paks (rust-pak / rust-assets crates) and the sim core (rust-combat)
+mh-pak = { path = "../mh-pak" }
+mh-level = { path = "../mh-level" }
+mh-physics = { path = "../mh-physics" }
+mh-assets = { path = "../mh-assets" }
+mordhau-core = { path = "../mordhau-core" }
+mh-sim = { path = "../mh-sim" }
+# the bots' navmesh: the map's cooked RecastNavMesh (rust-mode-ai r6)
+mh-nav = { path = "../mh-nav", features = ["level"] }
+mh-host = { path = "../mh-host" }
+mh-ui = { path = "../mh-ui" }
+mh-fx = { path = "../mh-fx" }
+mh-audio = { path = "../mh-audio" }
+mh-mode = { path = "../mh-mode" }
+mh-spec = { path = "../mh-spec" }
+mh-character = { path = "../mh-character" }
+# r5 network phase (sim_net.rs): rust-net's ServerNode / ClientNode
+mh-net = { path = "../mh-net" }
+# gameplay actors (doors, Frontline objectives, ladders, spawners; gameworld.rs)
+mh-world = { path = "../mh-world" }
+# Bevy 0.19.1 = latest stable release on crates.io (2026-10-04; 0.20 is rc). default-features off: no audio backend,
+# no gilrs/gamepad, no picking, no gizmos, no x11/wayland/webgl, no dev tools. Only 3D pbr + glTF + animation + UI text.
+bevy = { version = "0.19.1", default-features = false, features = [
+    "std", "multi_threaded", "async_executor", "bevy_asset", "bevy_log", "bevy_state", "reflect_auto_register",
+    "bevy_window", "bevy_winit", "bevy_render", "bevy_core_pipeline", "bevy_pbr", "bevy_light", "bevy_camera",
+    "bevy_color", "bevy_image", "bevy_mesh", "bevy_shader", "bevy_material", "bevy_mikktspace",
+    "bevy_gltf", "bevy_scene", "bevy_world_serialization", "bevy_animation", "gltf_animation",
+    "bevy_text", "bevy_ui", "bevy_ui_render", "default_font",
+    "bevy_post_process", "png", "tonemapping_luts", "ktx2", "zstd_rust", "keyboard", "mouse",
+    "bevy_gizmos",
+] }

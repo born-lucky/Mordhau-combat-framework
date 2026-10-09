@@ -1,0 +1,76 @@
+[package]
+name = "mh-net"
+description = "Mordhau networking (port of godot/game/net): FNetMotion replication, replicated character props, ping compensation, game session / login gate, beacon, loopback + UDP transports"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+# UE f64/f32 math (ue::f32r, cvtss2si) and, once rust-combat lands the seam, the combat World it drives
+mordhau-core = { path = "../mordhau-core" }
+# the game modes NetDuelMatch drives on the server (ServerMode for mh_mode::GameMode, src/mode_adapter.rs)
+mh-mode = { path = "../mh-mode", optional = true }
+# exe-exact character movement the movement netcode (src/movement.rs) predicts and corrects
+mh-character = { path = "../mh-character" }
+# wire form of a message (the GDScript port uses var_to_bytes; any self-describing encoding carries the same data)
+serde.workspace = true
+serde_json.workspace = true
+# feature `host`: mh-net-node builds its data from the spec matrix + the user's paks through the shared host loader
+# (sheets builder); the library and the tests stay pak-free, the golden-file loaders are the fallback
+mh-host = { path = "../mh-host", optional = true }
+# feature `sim`: sim_server.rs, the server's world as mh-sim's Sim (traces on posed bodies, bots)
+mh-sim = { path = "../mh-sim", optional = true }
+# feature `world`: world_rep.rs's RepWorld adapter over mh-world's World (rep_vars / apply_rep, mh-world r2)
+mh-world = { path = "../mh-world", optional = true }
+
+[dev-dependencies]
+# tests/proxy_map.rs: simulated proxies on a real map's collision (mh_level::collision::CollisionWorld through the
+# user's install; SKIP without it)
+mh-level = { path = "../mh-level" }
+mh-pak = { path = "../mh-pak" }
+# tests/sim_match.rs: the server Sim's data (spec matrix, ClipPoser over the paks)
+mh-spec = { path = "../mh-spec" }
+mh-assets = { path = "../mh-assets" }
+
+[features]
+default = ["mode", "world"]
+# the placed actors' replication over mh-world (world_rep::MhWorld)
+world = ["dep:mh-world"]
+# the server's world as mh-sim's Sim (sim_server::SimWorld)
+sim = ["mode", "dep:mh-sim"]
+# the game modes (mh-mode) behind NetDuelMatch: ServerMode for GameMode, the mh-net-node binary, the match tests
+mode = ["dep:mh-mode"]
+# mh-net-node only: records from data_gen/spec + paks (mh-host) instead of the golden files; `--data golden` forces the
+# golden files, and a failed spec / pak load falls back to them
+host = ["mode", "dep:mh-host"]
+# the GDScript reference model (mordhau-core World::new_reference) for the tests that compare with the reference's
+# values bit for bit; the default is the exe-exact World::new (both are tested: see docs/RUST_NET.md)
+reference_compat = ["mordhau-core/reference_compat"]
+
+[[bin]]
+name = "mh-net-node"
+required-features = ["mode"]
+
+[[test]]
+name = "core"
+required-features = ["mode"]
+
+[[test]]
+name = "mode"
+required-features = ["mode"]
+
+[[test]]
+name = "node"
+required-features = ["mode"]
+
+[[test]]
+name = "world_net"
+required-features = ["world"]
+
+[[test]]
+name = "sim_match"
+required-features = ["sim"]
+
+[[test]]
+name = "two_process"
+required-features = ["mode"]

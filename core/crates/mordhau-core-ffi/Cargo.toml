@@ -1,0 +1,15 @@
+[package]
+name = "mordhau-core-ffi"
+description = "C ABI over mordhau-core (create world, add fighter, push input, step, read state); header include/mordhau_core.h"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+mordhau-core = { path = "../mordhau-core" }
+serde_json.workspace = true
+# mh_world_new_from_install: the spec matrix + the user's paks through the shared host loader (sheets builder, r10)
+mh-host = { path = "../mh-host" }

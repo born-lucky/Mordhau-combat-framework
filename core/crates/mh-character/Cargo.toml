@@ -1,0 +1,38 @@
+[package]
+name = "mh-character"
+description = "Engine-neutral Mordhau character movement (UMordhauMovementComponent / AMordhauCharacter rules) ported from the decomp via the GDScript reference"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+mordhau-core = { path = "../mordhau-core" }   # ue: shared UE / Godot-reference float math
+# float_roundtrip: package JSON numbers parse to the nearest f64, as Godot's JSON reader does (ExtractJson)
+serde_json = { workspace = true, features = ["float_roundtrip"] }
+# feature `spec`: SpecCharacter (src/spec_source.rs), the records from the spec matrix (data_gen/spec)
+mh-spec = { path = "../mh-spec", optional = true }
+
+[dev-dependencies]
+# real-map tests (tests/exe_maps.rs): the collision world (mh-level depends on this crate; a dev-only edge), the pak
+# reader and LOD0 triangles for complex-as-simple meshes
+mh-level = { path = "../mh-level" }
+mh-pak = { path = "../mh-pak" }
+mh-assets = { path = "../mh-assets" }
+
+[features]
+# the GDScript reference reproduced bit for bit (module compat; golden traces). The default build is exe-exact.
+reference_compat = []
+# the character records from the Spreadsheet Method spec matrix (src/spec_source.rs, sheets builder)
+spec = ["dep:mh-spec"]
+
+[[test]]
+name = "golden"
+required-features = ["reference_compat"]
+
+[[test]]
+name = "rules"
+required-features = ["reference_compat"]
+
+[[test]]
+name = "spec_source"
+required-features = ["spec"]

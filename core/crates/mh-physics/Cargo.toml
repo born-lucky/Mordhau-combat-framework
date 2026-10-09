@@ -1,0 +1,17 @@
+[package]
+name = "mh-physics"
+description = "A safe Rust owner for the installed Mordhau PhysX 3.4.0 scene through a small native C ABI"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[features]
+# Explicit native diagnostics only; no default or runtime environment bypass.
+native-validation = []
+
+[dependencies]
+libloading = "0.8.9"
+sha1_smol = "1"
+
+[dev-dependencies]
+mh-pak = { path = "../mh-pak" }

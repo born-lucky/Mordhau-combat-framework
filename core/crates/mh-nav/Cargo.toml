@@ -1,0 +1,27 @@
+[package]
+name = "mh-nav"
+description = "Engine-neutral navmesh for the bots: a Recast-style walkable-surface build over a map's collision (mh_character::World, e.g. mh_level CollisionWorld) with the game's Recast agent, plus path / raycast / random-point queries (mh_mode::ai::NavQueries)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+mordhau-core = { path = "../mordhau-core" }
+mh-character = { path = "../mh-character" }
+mh-mode = { path = "../mh-mode" }
+# feature "level": cooked::load reads a map's cooked RecastNavMesh from the paks
+mh-level = { path = "../mh-level", optional = true }
+
+[features]
+level = ["dep:mh-level"]
+
+[dev-dependencies]
+# the tests use the cooked navmesh (feature level on this crate)
+mh-nav = { path = ".", features = ["level"] }
+mh-level = { path = "../mh-level" }
+mh-pak = { path = "../mh-pak" }
+mh-assets = { path = "../mh-assets" }
+# tests/sim_nav.rs: bots on a real map in mh-sim with this navmesh
+mh-sim = { path = "../mh-sim" }
+mh-spec = { path = "../mh-spec" }
+serde_json.workspace = true
