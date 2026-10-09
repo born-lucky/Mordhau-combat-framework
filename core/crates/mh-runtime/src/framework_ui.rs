@@ -227,9 +227,11 @@ fn controls(player: Option<&PlayerControl>) -> String {
         crate::input::Key::WheelUp => "Wheel up".into(),
         crate::input::Key::WheelDown => "Wheel down".into(),
     };
-    let bindings: Vec<_> = [("Strike", "Strike"), ("Stab", "Stab"), ("Parry", "Parry"),
-        ("Feint", "Feint"), ("Grip", "Weapon Mode / Reload")].into_iter().map(|(label, action)| {
-            let keys: Vec<_> = player.actions.get(action).into_iter().flatten().map(key).collect();
+    let bindings: Vec<_> = [("Strike", &["Strike", "Right Strike", "Left Strike"][..]),
+        ("Stab", &["Stab", "Right Stab", "Left Stab"][..]), ("Parry", &["Parry"][..]),
+        ("Feint", &["Feint"][..]), ("Grip", &["Weapon Mode / Reload"][..])].into_iter().map(|(label, actions)| {
+            let mut keys: Vec<_> = actions.iter().flat_map(|action| player.actions.get(*action)).flatten().map(key).collect();
+            keys.sort(); keys.dedup();
             format!("{label}: {}", if keys.is_empty() { "unbound".into() } else { keys.join(" / ") })
         }).collect();
     format!("{}\nTracers: F7    Parry geometry: F8    Combat tools: F9", bindings.join("    "))
