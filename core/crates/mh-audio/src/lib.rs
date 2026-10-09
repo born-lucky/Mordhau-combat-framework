@@ -195,7 +195,40 @@ impl Plugin for AudioPlugin {
             app.add_systems(Startup, spawn_bus);
         }
         app.insert_resource(AudioOutput { device });
+        if !device {
+            if let Some(path) = std::env::var_os("MH_AUDIO_CAPTURE") {
+                app.world_mut().resource_mut::<OfflineMix>().capture = Some(Vec::new());
+                app.insert_resource(AudioCapture(std::path::PathBuf::from(path)))
+                    .add_systems(Last, export_capture);
+            }
+        }
     }
+}
+
+/// Optional offline evidence. Normal interactive/device playback allocates no recording buffer.
+#[derive(Resource)]
+struct AudioCapture(std::path::PathBuf);
+
+fn export_capture(mut exit: MessageReader<bevy::app::AppExit>, capture: Res<AudioCapture>, mix: Res<OfflineMix>) {
+    if exit.read().next().is_none() { return; }
+    let Some(samples) = mix.capture.as_ref() else { return };
+    let result = (|| -> Result<(), String> {
+        use std::io::Write;
+        let size = u32::try_from(samples.len().checked_mul(2).ok_or("PCM size overflow")?).map_err(|_| "Recording exceeds RIFF limit")?;
+        let riff = size.checked_add(36).ok_or("Recording exceeds RIFF limit")?;
+        if let Some(parent) = capture.0.parent() { std::fs::create_dir_all(parent).map_err(|e| e.to_string())?; }
+        let mut out = std::io::BufWriter::new(std::fs::File::create(&capture.0).map_err(|e| e.to_string())?);
+        let mut header = Vec::new();
+        header.extend_from_slice(b"RIFF"); header.extend_from_slice(&riff.to_le_bytes()); header.extend_from_slice(b"WAVEfmt ");
+        header.extend_from_slice(&16u32.to_le_bytes()); header.extend_from_slice(&1u16.to_le_bytes()); header.extend_from_slice(&2u16.to_le_bytes());
+        header.extend_from_slice(&mixer::MIXER_RATE.to_le_bytes()); header.extend_from_slice(&(mixer::MIXER_RATE * 4).to_le_bytes());
+        header.extend_from_slice(&4u16.to_le_bytes()); header.extend_from_slice(&16u16.to_le_bytes()); header.extend_from_slice(b"data"); header.extend_from_slice(&size.to_le_bytes());
+        out.write_all(&header).map_err(|e| e.to_string())?;
+        for &sample in samples { out.write_all(&mixer::ov_read_sample(sample).to_le_bytes()).map_err(|e| e.to_string())?; }
+        out.flush().map_err(|e| e.to_string())?;
+        Ok(())
+    })();
+    match result { Ok(()) => info!("Framework audio capture saved: {}", capture.0.display()), Err(e) => error!("Audio capture failed: {e}") }
 }
 
 /// where voices go: `device` = bevy_audio (rodio) players, else `OfflineMix`
