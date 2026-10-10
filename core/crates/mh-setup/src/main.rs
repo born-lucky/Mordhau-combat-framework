@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 const UI: &str = include_str!("setup.ps1");
 
 #[derive(Default)]
-struct Args { operation: String, game: Option<PathBuf>, root: Option<PathBuf>, preview: Option<PathBuf> }
+struct Args { operation: String, game: Option<PathBuf>, game_exe: Option<PathBuf>, root: Option<PathBuf>, preview: Option<PathBuf> }
 
 fn args() -> Result<Args, String> {
     let mut a = Args::default();
@@ -19,12 +19,14 @@ fn args() -> Result<Args, String> {
                 a.operation = v.to_string_lossy().into();
             }
             Some("--game-dir") => a.game = Some(input.next().ok_or("--game-dir needs a folder")?.into()),
+            Some("--game-exe") => a.game_exe = Some(input.next().ok_or("--game-exe needs the original executable")?.into()),
             Some("--root") => a.root = Some(input.next().ok_or("--root needs a folder")?.into()),
             Some("--preview") => a.preview = Some(input.next().ok_or("--preview needs an output PNG")?.into()),
             Some("--json") => (),
             _ => return Err(format!("Unknown argument {}", v.to_string_lossy())),
         }
     }
+    if a.game.is_some() && a.game_exe.is_some() { return Err("Select either --game-dir or --game-exe".into()); }
     Ok(a)
 }
 
@@ -103,7 +105,8 @@ fn launch(game: Option<&Path>, root: &Path) -> Result<Value,String> {
         "status":"A runtime process was created; gameplay readiness has not been confirmed"}))
 }
 
-fn run(a: Args) -> Result<Value,String> {
+fn run(mut a: Args) -> Result<Value,String> {
+    if let Some(exe) = a.game_exe.as_deref() { a.game = Some(mh_install::root_from_executable(exe)?); }
     let root=match a.root { Some(p)=>p, None=>framework_root()? };
     match a.operation.as_str() {
         "--check"=>Ok(check(a.game.as_deref(),&root)),

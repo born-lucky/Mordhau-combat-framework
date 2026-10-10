@@ -87,11 +87,7 @@ impl Install {
     pub fn pak(&self) -> &Path { &self.pak }
     pub fn physics_dlls(&self) -> &[PathBuf] { &self.physics_dlls }
     pub fn discover() -> Result<Self> {
-        let path = match std::env::var_os("MORDHAU_DIR") {
-            Some(p) if p.is_empty() => return Err("MORDHAU_DIR is empty; select your own installed game directory".into()),
-            Some(p) => PathBuf::from(p),
-            None => PathBuf::from(DEFAULT_STEAM_INSTALL),
-        };
+        let path = discover_root()?;
         Self::verify(&path)
     }
 
@@ -105,15 +101,67 @@ impl Install {
     }
 
     pub fn discover_runtime() -> Result<Self> {
-        let root = match std::env::var_os("MORDHAU_DIR") {
-            Some(p) if p.is_empty() => return Err("MORDHAU_DIR is empty".into()),
-            Some(p) => PathBuf::from(p),
-            None => PathBuf::from(DEFAULT_STEAM_INSTALL),
-        };
+        let root = discover_root()?;
         Self::runtime_files(&root)
     }
 
     pub fn verify(root: &Path) -> Result<Self> { verify_install(root, EXE_SHA1) }
+}
+
+/// Resolve an existing Shipping executable; validation still happens at import.
+pub fn root_from_executable(path: &Path) -> Result<PathBuf> {
+    let exe = fs::canonicalize(path).map_err(|e| format!("Original executable {}: {e}", path.display()))?;
+    if !exe.is_file() { return Err("Original executable must be a file".into()); }
+    let expected = ["Mordhau-Win64-Shipping.exe", "Win64", "Binaries", "Mordhau"];
+    let mut at = exe.as_path();
+    for name in expected {
+        if !at.file_name().is_some_and(|v| v.to_string_lossy().eq_ignore_ascii_case(name)) {
+            return Err("Select the original Mordhau/Binaries/Win64/Mordhau-Win64-Shipping.exe in its installation".into());
+        }
+        at = at.parent().ok_or("Original executable has no installation root")?;
+    }
+    directory(at, "Original Mordhau installation")
+}
+
+fn choose_running_root(paths: Vec<PathBuf>) -> Result<Option<PathBuf>> {
+    let mut roots = Vec::new();
+    for path in paths {
+        let root = root_from_executable(&path)?;
+        if !roots.contains(&root) { roots.push(root); }
+    }
+    if roots.len() > 1 { return Err("Multiple running MORDHAU installations; select your original executable or folder".into()); }
+    Ok(roots.pop())
+}
+
+#[cfg(windows)]
+fn running_root() -> Result<Option<PathBuf>> {
+    use std::os::windows::process::CommandExt;
+    let script = "$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false); @(Get-CimInstance Win32_Process -Filter \"Name='Mordhau-Win64-Shipping.exe'\" -OperationTimeoutSec 5 | Select-Object ProcessId,ExecutablePath) | ConvertTo-Json -Compress";
+    let out = std::process::Command::new("powershell.exe")
+        .args(["-NoProfile", "-NonInteractive", "-Command", script])
+        .creation_flags(0x08000000).output().map_err(|e| format!("Cannot locate running MORDHAU: {e}"))?;
+    if !out.status.success() { return Err("Windows could not query running MORDHAU; select its executable or installation folder".into()); }
+    let text = String::from_utf8(out.stdout).map_err(|e| e.to_string())?;
+    if text.trim().is_empty() { return Ok(None); }
+    let paths: serde_json::Value = serde_json::from_str(&text).map_err(|e| format!("Invalid running MORDHAU response: {e}"))?;
+    let rows = match paths { serde_json::Value::Array(v) => v, v => vec![v] };
+    let mut selected = Vec::new();
+    for row in rows {
+        let path = row.get("ExecutablePath").and_then(|v| v.as_str()).filter(|p| !p.is_empty()).ok_or("Windows cannot read the running MORDHAU path; select its executable")?;
+        selected.push(PathBuf::from(path));
+    }
+    choose_running_root(selected)
+}
+
+#[cfg(not(windows))]
+fn running_root() -> Result<Option<PathBuf>> { Ok(None) }
+
+fn discover_root() -> Result<PathBuf> {
+    match std::env::var_os("MORDHAU_DIR") {
+        Some(p) if p.is_empty() => Err("MORDHAU_DIR is empty; select your existing installation".into()),
+        Some(p) => Ok(PathBuf::from(p)),
+        None => Ok(running_root()?.unwrap_or_else(|| PathBuf::from(DEFAULT_STEAM_INSTALL))),
+    }
 }
 
 // The expected hash is private, and production has only the fixed original hash entry point.
@@ -262,6 +310,20 @@ mod tests {
     #[test] fn rejects_missing_install_and_fake_original_hash() {
         let t = Temp::new(); assert!(Install::verify(&t.0).unwrap_err().contains("Missing required"));
         let (t, _) = install(); assert!(Install::verify(&t.0).unwrap_err().contains("Unsupported original EXE"));
+    }
+    #[test] fn executable_selection_uses_original_tree_and_never_accepts_rewrite_names() {
+        let (t, _) = install();
+        assert_eq!(root_from_executable(&t.0.join(EXE)).unwrap(), fs::canonicalize(&t.0).unwrap());
+        for name in ["MordhauRewrite.exe", "mordhau.exe", "Mordhau-Win64-Shipping.exe"] {
+            t.put(name, &pe()); assert!(root_from_executable(&t.0.join(name)).is_err());
+        }
+    }
+    #[test] fn running_selection_deduplicates_and_rejects_multiple_installations() {
+        let (one, _) = install(); let (two, _) = install();
+        assert!(choose_running_root(vec![]).unwrap().is_none());
+        let exe = one.0.join(EXE);
+        assert_eq!(choose_running_root(vec![exe.clone(),exe]).unwrap(),Some(fs::canonicalize(&one.0).unwrap()));
+        assert!(choose_running_root(vec![one.0.join(EXE),two.0.join(EXE)]).unwrap_err().contains("Multiple"));
     }
     #[test] fn prepared_runtime_does_not_require_exe_but_import_still_does() {
         let (t, _) = install();

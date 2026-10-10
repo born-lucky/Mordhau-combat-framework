@@ -6,21 +6,38 @@ The FEnumParams field offsets must come from the original complete CodeView type
 import struct
 
 DATA_KINDS={0x110c,0x110d} # S_LDATA32, S_GDATA32 (type, section offset, section, name)
+PROC_KINDS={0x110f,0x1110,0x1146,0x1147}
 
 def data_records(raw,pe,start=0,origin=''):
-    result=[];pos=start
+    result=[];pos=start;scopes=[]
     while pos<len(raw):
+        while scopes and pos>=scopes[-1]['end']:scopes.pop()
         if pos+4>len(raw):raise ValueError('Truncated data symbol header')
         size,kind=struct.unpack_from('<HH',raw,pos);end=pos+size+2
         if size<2 or end>len(raw):raise ValueError('Data symbol record outside stream')
+        if kind in PROC_KINDS:
+            if size<38:raise ValueError('Truncated procedure scope record')
+            scope_end=struct.unpack_from('<I',raw,pos+8)[0]
+            if not end<=scope_end<=len(raw)-4:raise ValueError('Procedure scope end outside stream')
+            end_size,end_kind=struct.unpack_from('<HH',raw,scope_end)
+            if end_kind not in (0x0006,0x114f) or end_size<2 or scope_end+end_size+2>len(raw):
+                raise ValueError('Procedure scope end does not identify an end record')
+            name=raw[pos+39:end]
+            if b'\0' not in name:raise ValueError('Unterminated procedure scope name')
+            scopes.append({'name':name.split(b'\0',1)[0].decode('utf-8'),'start':pos,'end':scope_end})
         if kind in DATA_KINDS:
             if size<13:raise ValueError('Truncated typed data symbol')
             ti,offset,section=struct.unpack_from('<IIH',raw,pos+4)
-            if not 1<=section<=len(pe.sections):raise ValueError('Data symbol section outside PE')
             name=raw[pos+14:end]
             if b'\0' not in name:raise ValueError('Unterminated data symbol name')
-            name=name.split(b'\0',1)[0].decode('utf-8')
-            result.append({'name':name,'rva':pe.sections[section-1][1]+offset,
+            name=name.split(b'\0',1)[0].decode('utf-8');raw_name=name
+            scope=scopes[-1] if scopes else None
+            if scope and kind==0x110c:name=scope['name']+'::'+name
+            # The installed PDB also contains unrelated data symbols whose segment
+            # is absent from this PE. Retain their identity without inventing an RVA.
+            mapped=1<=section<=len(pe.sections)
+            result.append({'name':name,'rva':pe.sections[section-1][1]+offset if mapped else None,
+                           'section':section,'section_offset':offset,'raw_name':raw_name,'procedure_scope':scope,
                            'type_index':ti,'record_kind':hex(kind),'record_offset':pos,'origin':origin})
         pos=end
     return result
@@ -47,7 +64,7 @@ def read_enum(pe,records,label,params_layout,enumerator_layout):
     def symbol(suffix):
         names={label+'::'+suffix,label+'_Statics::'+suffix}
         matches=[r for r in records if r['name'] in names]
-        if not matches or len({r['rva'] for r in matches})!=1:
+        if not matches or any(r['rva'] is None for r in matches) or len({r['rva'] for r in matches})!=1:
             raise ValueError('Missing/ambiguous original enum '+suffix)
         return matches[0]['rva'],matches
     enumerators,enum_symbols=symbol('Enumerators');params,param_symbols=symbol('EnumParams')
@@ -76,3 +93,12 @@ def read_enum(pe,records,label,params_layout,enumerator_layout):
         seen.add(name);rows.append({'name':name,'value':value})
     return {'label':label,'rows':rows,'symbols':enum_symbols+param_symbols,
             'params_rva':params,'enumerators_rva':enumerators,'params_layout':params_layout,'enumerator_layout':enumerator_layout}
+
+def check_enum_type(rows,layout):
+    """Cross-check PE reflection against the separately encoded PDB enum type."""
+    if layout.get('kind')!='enum' or not layout.get('enumerators'):
+        raise ValueError('Original complete enum type unavailable')
+    expected={layout['name']+'::'+name:value for name,value in layout['enumerators']}
+    actual={row['name']:row['value'] for row in rows}
+    if len(expected)!=len(layout['enumerators']) or len(actual)!=len(rows) or expected!=actual:
+        raise ValueError('Original PE reflection disagrees with complete PDB enum '+layout['name'])

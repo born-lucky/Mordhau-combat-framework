@@ -20,10 +20,20 @@ def generate(game,cache,labels):
         records=reflection.collect(msf,pe,symbols)
         tpi=codeview.Tpi(msf.export(2,stage/'tpi.bin'),True);layouts=layoutmod.Layouts(codeview,tpi)
         params=layouts.layout('UE4CodeGen_Private::FEnumParams');entry=layouts.layout('UE4CodeGen_Private::FEnumeratorParam')
-        values={label:reflection.read_enum(pe,records,label,params,entry) for label in labels}
+        values={}
+        for label in labels:
+            prefix='Z_Construct_UEnum_Mordhau_'
+            if not label.startswith(prefix):raise ValueError('Select an original Mordhau UHT enum identity')
+            value=reflection.read_enum(pe,records,label,params,entry)
+            enum_type=layouts.layout(label.removeprefix(prefix))
+            reflection.check_enum_type(value['rows'],enum_type)
+            value['enum_type']=enum_type;values[label]=value
         with (stage/'enums.json').open('x',encoding='utf-8') as f:json.dump(values,f,indent=2,allow_nan=False)
         receipt={'stage':'native-reflection-enums','exe_sha1':native.EXE_SHA1,'pdb_sha1':native.PDB_SHA1,
                  'output':str(stage/'enums.json'),'enum_count':len(values),'row_count':sum(len(v['rows']) for v in values.values()),
+                 'unmapped_data_symbols':sum(r['rva'] is None for r in records),
+                 'pdb_enum_crosscheck':True,
+                 'outputs':[{'path':str(stage/'enums.json'),'sha256':native.digest(stage/'enums.json','sha256'),'size':(stage/'enums.json').stat().st_size}],
                  'complete':False,'runtime_ready':False,'scope':'Original structured PDB data and typed original PE table reads; consumer matrix integration pending'}
         with (stage/'receipt.json').open('x',encoding='utf-8') as f:json.dump(receipt,f,indent=2)
         return receipt

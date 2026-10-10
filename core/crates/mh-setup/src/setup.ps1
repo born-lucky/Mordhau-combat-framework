@@ -60,7 +60,7 @@ $root = $env:MH_SETUP_ROOT
      <TextBox x:Name="GamePath" AutomationProperties.Name="Original MORDHAU installation folder"/>
      <Button x:Name="Browse" Grid.Column="1" Content="Browse" Margin="10,0,0,0" Padding="12,10"/>
     </Grid>
-    <TextBlock Text="Choose the Steam MORDHAU folder or its original executable." Foreground="#A7C3CD" FontSize="12" Margin="0,8,0,14"/>
+    <TextBlock Text="Leave blank to use running MORDHAU, or choose your existing folder or executable." Foreground="#A7C3CD" FontSize="12" Margin="0,8,0,14"/>
     <StackPanel Orientation="Horizontal"><Button x:Name="Check" Content="Check installation"/><TextBlock x:Name="InstallState" Text="Waiting for a game folder" VerticalAlignment="Center" Foreground="#A7C3CD" FontSize="13" TextWrapping="Wrap" MaxWidth="340"/></StackPanel>
    </StackPanel>
    <StackPanel Grid.Row="2" Margin="0,24,0,0">
@@ -93,7 +93,7 @@ $reader = New-Object System.Xml.XmlNodeReader $xaml
 $window = [Windows.Markup.XamlReader]::Load($reader)
 $controls = @{}
 'Buy','GamePath','Browse','Check','Prepare','Launch','InstallState','DataState','LaunchState','Activity' | ForEach-Object { $controls[$_] = $window.FindName($_) }
-$controls.GamePath.Text = if ($env:MORDHAU_DIR) { $env:MORDHAU_DIR } else { 'C:\Program Files (x86)\Steam\steamapps\common\Mordhau' }
+$controls.GamePath.Text = if ($env:MORDHAU_DIR) { $env:MORDHAU_DIR } else { '' }
 $script:verifiedPath = ''
 $script:busy = $false
 $script:job = $null
@@ -133,7 +133,8 @@ function Begin-Operation([string]$mode) {
   '--prepare' { 'Preparing local files from your installation. The original files stay untouched.' }
   '--launch' { 'Checking the installation and local data again before launching...' }
  }
- $argv = @($mode,'--game-dir',$controls.GamePath.Text,'--root',$root,'--json')
+ $argv = @($mode,'--root',$root,'--json')
+ if (-not [string]::IsNullOrWhiteSpace($controls.GamePath.Text)) { $argv += @('--game-dir',$controls.GamePath.Text) }
  $script:job = Start-Job -ScriptBlock { param($exe,$arguments) & $exe @arguments } -ArgumentList $tool, $argv
  $timer.Start()
 }
@@ -148,6 +149,7 @@ $timer.Add_Tick({
   if ($result.launch_requested) {
    $controls.Activity.Text = 'Launch requested. The game window is starting; gameplay readiness has not been confirmed.'
   } else {
+   if ($result.installed -and [string]::IsNullOrWhiteSpace($controls.GamePath.Text)) { $controls.GamePath.Text = [string]$result.game_dir }
    $controls.InstallState.Text = if ($result.installed) { 'Local runtime files found' } else { 'Required runtime files unavailable' }
    $controls.InstallState.Foreground = if ($result.installed) { [Windows.Media.BrushConverter]::new().ConvertFrom('#92C5B5') } else { [Windows.Media.BrushConverter]::new().ConvertFrom('#D8A584') }
    $controls.DataState.Text = if ($result.local_data_ready) { 'Local data is ready' } else { 'Local preparation is incomplete' }
