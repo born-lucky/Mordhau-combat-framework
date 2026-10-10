@@ -20,3 +20,7 @@ serde_json.workspace = true
 
 [dev-dependencies]
 mordhau-core = { path = "../mordhau-core", features = ["reference_compat"] }
+
+[[bin]]
+name = "mh-verify-weapon-import"
+path = "../../../tools/local-import/native-tools/VerifyWeaponImport.rs"

@@ -12,6 +12,40 @@ class PE:
   raise ValueError('range')
 def proc(name,at,size):return dict(name=name+'::'+name,rva=at,size=size)
 class Tests(unittest.TestCase):
+ def test_placement_new_wrapper_proves_nonnull_guard_and_nested_ctor(self):
+  code=bytearray(bytes.fromhex('488b194885db740c4889d9'))
+  code.extend(b'\xe8'+struct.pack('<i',0x1040-(0x1000+len(code)+5)))
+  code.extend(bytes.fromhex('90909090c3'))
+  child=bytes.fromhex('c70178563412c3');first_size=len(code)
+  code.extend(bytes(0x40-len(code)));code.extend(child)
+  rows=[dict(name='InternalConstructor<UPlacement>',rva=0x1000,size=first_size),proc('UBase',0x1040,len(child))]
+  result=l.Replay(PE(bytes(code)),rows,4).apply(0x1000)
+  self.assertEqual(result['bytes'],bytes.fromhex('78563412'));self.assertEqual(result['known_bytes'],'01010101')
+ def test_scalar_sse_binary32_product_and_double_lane_unpack(self):
+  data=struct.pack('<8I',0x3e4ccccd,0x11223344,0x55667788,0x99aabbcc,0x3f19999a,0xabcdef01,0x01020304,0x05060708)
+  code=bytearray()
+  for prefix,rva in [(bytes.fromhex('0f1005'),0x2000),(bytes.fromhex('0f100d'),0x2010)]:
+   at=0x1000+len(code);code.extend(prefix+struct.pack('<i',rva-at-len(prefix)-4))
+  code.extend(bytes.fromhex('f30f59c1660f14c80f1109c3'))
+  # XMM0.lowfloat is rounded0.12; UNPCKLPD XMM1,XMM0 copies
+  # original XMM1 low64 then product/destination lane1 low64.
+  result=l.Replay(PE(bytes(code),data),[proc('FSseReview',0x1000,len(code))],16).apply(0x1000)
+  self.assertEqual(struct.unpack('<4I',result['bytes']),(0x3f19999a,0xabcdef01,0x3df5c290,0x11223344))
+ def test_unknown_write_cannot_turn_into_a_known_zero_default(self):
+  code=bytes.fromhex('8901894104c7410878563412c3')
+  result=l.Replay(PE(code),[proc('FUnknown',0x1000,len(code))],12).apply(0x1000)
+  self.assertEqual(bytes.fromhex(result['known_bytes']),bytes(8)+bytes([1])*4)
+  self.assertEqual([(v['object_offset'],v['size']) for v in result['unknown_stores']],[(0,4),(4,4)])
+ def test_conditional_scalar_and_array_stores_remain_unaccepted(self):
+  # JZ skips scalar write, later unconditional scalar write is reviewed.
+  code=bytes.fromhex('7406c70178563412c7410401000000c3')
+  result=l.Replay(PE(code),[proc('FConditional',0x1000,len(code))],8).apply(0x1000)
+  self.assertEqual(bytes.fromhex(result['known_bytes']),bytes(4)+bytes([1])*4)
+  self.assertTrue(result['stores'][0]['conditional']);self.assertFalse(result['stores'][1]['conditional'])
+ def test_unconditional_write_restores_previously_unknown_field(self):
+  code=bytes.fromhex('8901c70178563412c3')
+  result=l.Replay(PE(code),[proc('FKnownFinal',0x1000,len(code))],4).apply(0x1000)
+  self.assertEqual(result['bytes'],bytes.fromhex('78563412'));self.assertEqual(result['known_bytes'],'01010101')
  def test_scalar_alias_and_original_rip_vector_stores(self):
   # mov rbx,rcx / xor eax,eax / mov[rbx],eax / mov[rbx+4],11223344 / movups xmm0,[rip+data] / movups[rbx+8],xmm0 / ret
   code=b'\x48\x89\xcb\x31\xc0\x89\x03\xc7\x43\x04\x44\x33\x22\x11'

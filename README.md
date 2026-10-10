@@ -51,7 +51,7 @@ Original content is obtained from your own MORDHAU installation rather than ship
 python tools/setup.py --game-dir "YOUR-MORDHAU-INSTALL" --cache-dir "YOUR-LOCAL-CACHE" --json
 ```
 
-The supported Windows game EXE is `Mordhau/Binaries/Win64/Mordhau-Win64-Shipping.exe`. Native import currently also needs its matching PDB. The importer remains incomplete and does not yet prepare a runnable installation; see [local setup status](docs/LOCAL_IMPORT.md).
+The supported Windows game EXE is `Mordhau/Binaries/Win64/Mordhau-Win64-Shipping.exe`. Native import also needs its matching PDB. The [weapon-data importer](docs/WEAPON_IMPORT.md) now generates and verifies the original weapon and attack records from your existing installation. The complete setup-to-play importer remains unfinished; see [local setup status](docs/LOCAL_IMPORT.md).
 
 Explore the [framework API](docs/FRAMEWORK.md), [custom presentation](docs/PRESENTATION.md) and [release checklist](docs/RELEASE_BLOCKERS.md). Original game content remains subject to its owners' rights; see [notices](NOTICE.md).
 

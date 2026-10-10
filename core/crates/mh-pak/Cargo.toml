@@ -15,3 +15,7 @@ miniz_oxide = "0.8"		# zlib pak blocks (none in Mordhau; kept for parity with ue
 [[bin]]
 name = "mh-pak"
 path = "src/bin/mh-pak.rs"
+
+[[bin]]
+name = "mh-weapon-packages"
+path = "../../../tools/local-import/native-tools/WeaponPackages.rs"

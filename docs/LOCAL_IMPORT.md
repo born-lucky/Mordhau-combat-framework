@@ -1,5 +1,11 @@
 # Local import status
 
+The weapon-data stage is now implemented and accepted from original inputs. See
+[weapon import](WEAPON_IMPORT.md) for build commands, focused setup, validated
+coverage and remaining full-runtime dependencies. This supersedes the older
+weapon-constructor status below; the complete consumer setup-to-play path
+remains unfinished.
+
 Use your existing MORDHAU installation; no reinstall or fresh game copy is required. The Python setup command detects a running original Shipping executable first, then an existing Steam installation. An explicit selection takes priority:
 
 ```

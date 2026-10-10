@@ -6,6 +6,7 @@ consumer. A lexical array append represents the original reader contract, not he
 """
 from dataclasses import dataclass
 import struct
+import re
 
 @dataclass(frozen=True)
 class Pointer:
@@ -37,6 +38,10 @@ class Replay:
         for p in procedures:self.procedures.setdefault(p['rva'],[]).append(p)
         self.object=bytearray(size);self.array_offsets=set(array_offsets);self.arrays={}
         self.stores=[];self.unsupported=[];self.calls=[];self.active=[]
+        # UObject allocation is zero-filled; diagnostic callers may also use
+        # this mask, but consumer publication separately verifies that contract.
+        self.known=bytearray([1])*size
+        self.unknown_stores=[];self.external_calls=[]
 
     def issue(self, ins, reason):
         self.unsupported.append({'address':hex(ins.address),'asm':ins.mnemonic+' '+ins.op_str,'reason':reason})
@@ -47,18 +52,22 @@ class Replay:
         for p in rows:
             parts=p['name'].split('::')
             if len(parts)>=2 and parts[-1]==parts[-2] and parts[-1]:ctors.append(p)
+            elif re.fullmatch(r'InternalConstructor<[AU][A-Za-z0-9_]+>',p['name']):ctors.append(p)
         names={p['name'] for p in ctors}
         if len({p['size'] for p in ctors})>1:raise ValueError('Conflicting folded constructor code ranges')
         if ctors:
-            return dict(ctors[0],name=ctors[0]['name'] if len(names)==1 else '<folded original constructor body>',aliases=sorted(names))
+            return dict(ctors[0],name=ctors[0]['name'] if len(names)==1 else '<folded original constructor body>',aliases=sorted(names),
+                        initializer_wrapper=all(re.fullmatch(r'InternalConstructor<[AU][A-Za-z0-9_]+>',n) for n in names))
         return None
 
-    def apply(self,rva,at=0):
+    def apply(self,rva,at=0,conditional=False):
         proc=self.ctor(rva)
         if proc is None:raise ValueError('Selected original function is not a PDB constructor')
         if len(self.active)>=32 or rva in self.active:raise ValueError('Constructor recursion unsupported')
         self.active.append(rva)
-        regs={'rcx':Pointer('object',at),'rsp':Pointer('stack',0)};stack={}
+        regs={'rcx':Pointer('initializer',at) if proc.get('initializer_wrapper') else Pointer('object',at),'rsp':Pointer('stack',0)};stack={};conditional_ranges=[];zero_flag=None
+        def optional(ins):
+            return conditional or any(a<=ins.address<b for a,b in conditional_ranges)
         self.calls.append({'name':proc['name'],'aliases':proc['aliases'],'rva':hex(rva),'object_offset':at})
         def stack_write(offset,size,value):
             # An overlapping partial write invalidates the old wider value; it cannot
@@ -93,9 +102,10 @@ class Replay:
                 a=address(ins,operand);size=operand.size
                 if not isinstance(a,Pointer):return None
                 if a.kind=='stack':return stack.get((a.offset,size))
+                if a.kind=='initializer':return Pointer('object',a.offset) if size==8 and a.offset==at else None
                 if a.kind=='object':
                     if size==8 and a.offset in self.array_offsets:return Pointer('array',a.offset)
-                    if 0<=a.offset<=a.offset+size<=len(self.object):return int.from_bytes(self.object[a.offset:a.offset+size],'little')
+                    if 0<=a.offset<=a.offset+size<=len(self.object) and all(self.known[a.offset:a.offset+size]):return int.from_bytes(self.object[a.offset:a.offset+size],'little')
                 if a.kind=='data':
                     try:return self.pe.read_rva(a.offset,size)
                     except ValueError:return None
@@ -126,19 +136,27 @@ class Replay:
                 # Array index is appended lexically like NativeCtor.gd; only scalar literal writes qualify.
                 if isinstance(value,int) and size==4:
                     self.arrays.setdefault(dest.offset,[]).append(value&0xffffffff)
-                    self.stores.append({'address':hex(ins.address),'array_offset':dest.offset,'raw':(value&0xffffffff).to_bytes(4,'little').hex()})
+                    self.stores.append({'address':hex(ins.address),'array_offset':dest.offset,'raw':(value&0xffffffff).to_bytes(4,'little').hex(),'conditional':optional(ins)})
                 else:self.issue(ins,'Unsupported array store')
                 return
             if dest.kind!='object':return
+            if not 0<=dest.offset<=dest.offset+size<=len(self.object):raise ValueError('Constructor write outside typed object')
             if isinstance(value,Pointer):
                 # Object/asset/data pointers are not scalar defaults and are not fabricated.
+                self.known[dest.offset:dest.offset+size]=bytes(size)
+                self.unknown_stores.append({'address':hex(ins.address),'object_offset':dest.offset,'size':size,'reason':'Pointer semantics unresolved'})
                 return
             if isinstance(value,int):raw=(value&((1<<(size*8))-1)).to_bytes(size,'little')
             elif isinstance(value,bytes) and len(value)>=size:raw=value[:size]
-            else:self.issue(ins,'Unknown object store value');return
-            if not 0<=dest.offset<=dest.offset+size<=len(self.object):raise ValueError('Constructor write outside typed object')
+            else:
+                self.issue(ins,'Unknown object store value')
+                self.known[dest.offset:dest.offset+size]=bytes(size)
+                self.unknown_stores.append({'address':hex(ins.address),'object_offset':dest.offset,'size':size,'reason':'Unknown object store value'})
+                return
             self.object[dest.offset:dest.offset+size]=raw
-            self.stores.append({'address':hex(ins.address),'object_offset':dest.offset,'raw':raw.hex()})
+            valid=not optional(ins)
+            self.known[dest.offset:dest.offset+size]=bytes([int(valid)])*size
+            self.stores.append({'address':hex(ins.address),'object_offset':dest.offset,'raw':raw.hex(),'conditional':not valid})
         try:
             for ins in self.cs.disasm(self.pe.read_rva(rva,proc['size']),self.pe.base+rva):
                 op=ins.operands;name=ins.mnemonic
@@ -167,11 +185,26 @@ class Replay:
                 elif name=='lea' and len(op)==2:write(ins,op[0],address(ins,op[1]))
                 elif name in ('xor','xorps','xorpd','pxor') and len(op)==2 and op[0].type==self.op.X86_OP_REG and op[1].type==self.op.X86_OP_REG and op[0].reg==op[1].reg:
                     write(ins,op[0],bytes(op[0].size) if name!='xor' else 0)
+                    if name=='xor':zero_flag=True
                 elif name in ('xorps','xorpd','pxor','andps','andpd','pand','orps','orpd','por') and len(op)==2:
                     a,b=read(ins,op[0]),read(ins,op[1]);value=None
                     if isinstance(a,bytes) and isinstance(b,bytes):
                         operation=(lambda x,y:x^y) if name in ('xorps','xorpd','pxor') else (lambda x,y:x&y) if name in ('andps','andpd','pand') else (lambda x,y:x|y)
                         value=bytes(operation(x,y) for x,y in zip(a,b))
+                    write(ins,op[0],value)
+                elif name in ('unpcklpd','unpckhpd') and len(op)==2:
+                    a,b=read(ins,op[0]),read(ins,op[1]);value=None
+                    start=0 if name=='unpcklpd' else 8
+                    if isinstance(a,bytes) and isinstance(b,bytes) and len(a)>=start+8 and len(b)>=start+8:
+                        value=a[start:start+8]+b[start:start+8]
+                    write(ins,op[0],value)
+                elif name in ('mulss','addss','subss') and len(op)==2:
+                    a,b=read(ins,op[0]),read(ins,op[1]);value=None
+                    if isinstance(a,bytes) and isinstance(b,bytes) and len(a)>=4 and len(b)>=4:
+                        av=struct.unpack('<f',a[:4])[0];bv=struct.unpack('<f',b[:4])[0]
+                        number=av*bv if name=='mulss' else av+bv if name=='addss' else av-bv
+                        try:value=struct.pack('<f',number)+a[4:]
+                        except OverflowError:value=None
                     write(ins,op[0],value)
                 elif name in ('unpcklps','unpckhps','movhlps','movlhps','shufps') and len(op)>=2:
                     a,b=read(ins,op[0]),read(ins,op[1]);value=None
@@ -190,6 +223,7 @@ class Replay:
                         value=b''.join(prefix) or None
                     write(ins,op[0],value)
                 elif name in ('add','sub','and','or','xor','shl','shr','sar') and len(op)==2:
+                    zero_flag=None
                     a,b=read(ins,op[0]),read(ins,op[1]);value=None
                     if isinstance(a,Pointer) and isinstance(b,int) and name in ('add','sub'):value=Pointer(a.kind,a.offset+(b if name=='add' else -b))
                     elif isinstance(a,int) and isinstance(b,int):
@@ -202,17 +236,39 @@ class Replay:
                 elif name=='call':
                     target=read(ins,op[0]);target=target-self.pe.base if isinstance(target,int) else None
                     nested=self.ctor(target);this=regs.get('rcx')
-                    if nested and isinstance(this,Pointer) and this.kind=='object':self.apply(target,this.offset)
-                    else:self.issue(ins,'External/indirect call not replayed')
+                    if nested and isinstance(this,Pointer) and this.kind=='object':self.apply(target,this.offset,optional(ins))
+                    else:
+                        self.issue(ins,'External/indirect call not replayed')
+                        self.external_calls.append({'address':hex(ins.address),'target_rva':target,
+                            'names':sorted({p['name'] for p in self.procedures.get(target,[])}),
+                            'object_offset':this.offset if isinstance(this,Pointer) and this.kind=='object' else None})
                     for key in ['rax','rcx','rdx','r8','r9','r10','r11',*[f'xmm{i}' for i in range(6)]]:regs[key]=None
+                    zero_flag=None
                 elif name=='ret':break
-                elif name in ('nop','int3','cmp','test'):pass
+                elif name in ('nop','int3'):pass
+                elif name in ('cmp','test') and len(op)==2:
+                    a,b=read(ins,op[0]),read(ins,op[1]);zero_flag=None
+                    if name=='test' and op[0].type==self.op.X86_OP_REG and op[1].type==self.op.X86_OP_REG and op[0].reg==op[1].reg:
+                        if isinstance(a,Pointer) and a.kind in ('object','initializer'):zero_flag=False
+                        elif isinstance(a,int):zero_flag=a==0
+                    elif isinstance(a,int) and isinstance(b,int):zero_flag=(a==b if name=='cmp' else a&b==0)
                 elif name.startswith('j'):
                     self.issue(ins,'Control flow not emulated; lexical literal-reader contract only')
+                    # Placement-new wrappers guard the proven non-null object
+                    # pointer. That guard cannot make its base ctor conditional.
+                    if (name in ('je','jz') and zero_flag is False) or (name in ('jne','jnz') and zero_flag is True):continue
+                    target=read(ins,op[0]) if op else None
+                    if isinstance(target,int) and ins.address<target<=self.pe.base+rva+proc['size']:
+                        conditional_ranges.append((ins.address+ins.size,target))
+                    else:
+                        # A backward or out-of-body transfer prevents safe
+                        # consumer use of every subsequent lexical store.
+                        conditional_ranges.append((ins.address+ins.size,self.pe.base+rva+proc['size']))
                 else:
                     self.issue(ins,'Instruction not supported by literal reader')
                     # Do not allow stale destination-register values to become fabricated stores.
                     if op and op[0].type==self.op.X86_OP_REG:regs[register(self.cs,op[0].reg)]=None
         finally:self.active.pop()
-        return {'bytes':self.object,'arrays':self.arrays,'stores':self.stores,'calls':self.calls,'unsupported':self.unsupported,
+        return {'bytes':self.object,'known_bytes':self.known.hex(),'unknown_stores':self.unknown_stores,
+                'external_calls':self.external_calls,'arrays':self.arrays,'stores':self.stores,'calls':self.calls,'unsupported':self.unsupported,
                 'runtime_ready':False,'scope':'literal constructor replay diagnostic, not arbitrary x64 execution/full matrix'}

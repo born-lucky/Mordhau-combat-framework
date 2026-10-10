@@ -4,6 +4,7 @@
   "public_release_ready": false,
   "playable_download": false,
   "local_importer_implemented": false,
+  "weapon_data_importer_implemented": true,
   "blockers": [
     "Complete EXE-plus-paks local data importer",
     "Exact PhysX extension redistribution rights or replacement",

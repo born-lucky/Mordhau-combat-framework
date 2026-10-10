@@ -21,6 +21,26 @@ class CV:
  @staticmethod
  def bitinfo(t,ti):return (7,3,2) if ti==7 else None
 class Tests(unittest.TestCase):
+ def test_reviewed_unknown_bytes_omit_values_instead_of_zero_substitution(self):
+  d=m.Layouts(CV,Tpi());raw=bytearray(40);struct.pack_into('<i',raw,0,-12)
+  known=bytearray([1])*40;known[4:8]=bytes(4)
+  values,review=d.decode_reviewed('UOuter',raw,{},known,[])
+  self.assertEqual(values['BaseInt'],-12);self.assertNotIn('InnerFloat',values['Inner'])
+  row=next(v for v in review if v['field']=='Inner.InnerFloat')
+  self.assertFalse(row['accepted']);self.assertIn('unknown',row['reason'])
+  self.assertEqual(values['Object'],{});self.assertTrue(next(v for v in review if v['field']=='Object')['accepted'])
+ def test_reviewed_nonnull_pointer_never_acquires_null_default(self):
+  d=m.Layouts(CV,Tpi());raw=bytearray(40);raw[24]=1
+  values,review=d.decode_reviewed('UOuter',raw,{},bytes([1])*40,[])
+  self.assertNotIn('Object',values)
+  self.assertIn('Non-null',next(v for v in review if v['field']=='Object')['reason'])
+ def test_reviewed_array_checks_original_count_and_conditional_elements(self):
+  d=m.Layouts(CV,Tpi());raw=bytearray(40);struct.pack_into('<i',raw,16,1)
+  words=[int.from_bytes(struct.pack('<f',3.5),'little')]
+  values,_=d.decode_reviewed('UOuter',raw,{8:words},bytes([1])*40,[{'array_offset':8,'raw':'00006040','conditional':False}])
+  self.assertEqual(values['Inner']['Array'],[3.5])
+  values,_=d.decode_reviewed('UOuter',raw,{8:words},bytes([1])*40,[{'array_offset':8,'raw':'00006040','conditional':True}])
+  self.assertNotIn('Array',values['Inner'])
  def test_exact_base_nested_binary32_array_and_bit_offsets(self):
   d=m.Layouts(CV,Tpi());raw=bytearray(40);struct.pack_into('<i',raw,0,-12);struct.pack_into('<f',raw,4,1.25);raw[32]=1;raw[33]=0b10100
   words=[int.from_bytes(struct.pack('<f',v),'little') for v in (2.5,-3.75)]
