@@ -34,7 +34,7 @@ def errors_for(path: Path, relative: str) -> list[str]:
     if any(p.lower() in EXCLUDED_DIRS and Path(*parts[:i+1]).as_posix() not in OWN_SOURCE_DIRS for i, p in enumerate(parts)):
         errors.append(f"Private or generated directory: {relative}")
     suffix = path.suffix.lower()
-    allowed = suffix in ALLOWED_SUFFIXES or relative in ALLOWED_JSON or relative in OWN_SHADER_SOURCE or relative in OWN_NATIVE_TOOL_SOURCE or relative in OWN_READER_SOURCE or relative == ".gitignore" or (relative.startswith("demo/") and suffix == ".txt")
+    allowed = suffix in ALLOWED_SUFFIXES or relative in ALLOWED_JSON or relative in OWN_SHADER_SOURCE or relative in OWN_NATIVE_TOOL_SOURCE or relative in OWN_READER_SOURCE or relative in {".gitignore", "tools/local-import/requirements.txt"} or (relative.startswith("demo/") and suffix == ".txt")
     if (suffix in GAME_SUFFIXES and relative not in OWN_SHADER_SOURCE) or not allowed:
         errors.append(f"Unreviewed file type/path: {relative}")
     if path.stat().st_size > 2_000_000:

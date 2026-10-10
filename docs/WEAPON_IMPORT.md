@@ -9,12 +9,15 @@ Build the two helpers from this repository, using the project's serialized Cargo
 workflow where available:
 
 ```text
+python -m pip install -r tools/local-import/requirements.txt
 cargo build --manifest-path core/Cargo.toml -p mh-pak --bin mh-weapon-packages -j1
 cargo build --manifest-path core/Cargo.toml -p mh-sim --bin mh-verify-weapon-import -j1
 python tools/setup.py --weapons-only --game-exe "YOUR-INSTALL/Mordhau/Binaries/Win64/Mordhau-Win64-Shipping.exe" --cache-dir "YOUR-LOCAL-CACHE" --weapon-tool core/target/debug/mh-weapon-packages.exe --weapon-verify-tool core/target/debug/mh-verify-weapon-import.exe --json
 ```
 
-Python needs `openpyxl` for spreadsheet validation. Helper paths above assume
+Python needs Capstone for native decoding and `openpyxl` for spreadsheet
+validation. The requirements file pins the validated packages; install it in the
+same Python environment used to run setup. Helper paths above assume
 Cargo's default target directory; use the actual paths for a custom target.
 Full setup discovers these helpers in `tools/bin/`, or beside an explicitly
 supplied `--pak-tool`. `--check` verifies inputs without generating data.

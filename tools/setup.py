@@ -22,6 +22,15 @@ def load_stage(name):
     return loaded
 
 
+def verify_python_dependencies():
+    missing=[name for name in ('capstone','openpyxl') if importlib.util.find_spec(name) is None]
+    if missing:
+        requirements=Path(__file__).with_name('local-import')/'requirements.txt'
+        raise ImportError('Missing importer dependencies: '+', '.join(missing)+
+                          '. Install in this Python environment: "'+sys.executable+
+                          '" -m pip install -r "'+str(requirements)+'"')
+
+
 def discover_weapon_tools(args):
     locations=[Path(__file__).with_name('bin')]
     if args.pak_tool is not None:locations.append(args.pak_tool.parent)
@@ -89,6 +98,7 @@ def main(argv=None):
     installation=None
     stages={'native_stage':None,'enum_stage':None,'shadow_stage':None,'mode_stage':None,'weapon_stage':None}
     try:
+        if not args.check:verify_python_dependencies()
         installation=select_install(args.game_dir,args.game_exe)
         args.game_dir=Path(installation['game_dir'])
         if args.verify_tool:

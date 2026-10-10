@@ -39,6 +39,10 @@ class AuditTests(unittest.TestCase):
     def test_normal_source_accepted(self):
         self.assertFalse(self.check_blob("src/main.rs",b"fn main() {}"))
 
+    def test_import_requirements_allow_only_the_reviewed_manifest(self):
+        self.assertFalse(self.check_blob("tools/local-import/requirements.txt",b"capstone==5.0.7\n"))
+        self.assertTrue(self.check_blob("tools/local-import/original.txt",b"original data"))
+
     def test_reviewed_native_exporter_does_not_allow_arbitrary_java(self):
         self.assertFalse(self.check_blob("tools/local-import/native-tools/DecompGame.java",b"class DecompGame {}"))
         self.assertTrue(self.check_blob("other/DecompGame.java",b"class DecompGame {}"))

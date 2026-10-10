@@ -1,0 +1,4 @@
+# Validated dependencies for the original-installation importer.
+capstone==5.0.7
+openpyxl==3.1.5
+et-xmlfile==2.0.0

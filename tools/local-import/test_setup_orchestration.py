@@ -13,6 +13,22 @@ m=importlib.util.module_from_spec(sp);sp.loader.exec_module(m)
 
 
 class Tests(unittest.TestCase):
+    def test_missing_dependencies_block_before_install_selection_or_cache_generation(self):
+        output=io.StringIO()
+        with patch.object(m.importlib.util,'find_spec',return_value=None),patch.object(m,'select_install') as select,contextlib.redirect_stdout(output):
+            code=m.main(['--cache-dir','synthetic-cache','--weapons-only'])
+        result=json.loads(output.getvalue())
+        self.assertEqual(code,2);select.assert_not_called()
+        self.assertIn('capstone, openpyxl',result['error'])
+        self.assertIn('-m pip install -r',result['error'])
+        self.assertIn('requirements.txt',result['error'])
+        self.assertFalse(result['native_cache_generated'])
+
+    def test_check_requires_no_optional_importer_packages(self):
+        with patch.object(m,'verify_python_dependencies',side_effect=AssertionError('check must not require importer packages')):
+            code,result,calls=self.run_setup(check=True)
+        self.assertEqual(code,0);self.assertEqual(calls,['verify'])
+
     def run_setup(self,failure=None,check=False,pak=True,weapons=False,weapons_only=False,incomplete_weapon=False):
         calls=[]
         def stage(name):

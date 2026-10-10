@@ -48,6 +48,7 @@ This repository is a **source preview**. The complete consumer setup-to-play pat
 Original content is obtained from your own MORDHAU installation rather than shipped with the source. The current setup diagnostic is:
 
 ```text
+python -m pip install -r tools/local-import/requirements.txt
 python tools/setup.py --game-dir "YOUR-MORDHAU-INSTALL" --cache-dir "YOUR-LOCAL-CACHE" --json
 ```
 

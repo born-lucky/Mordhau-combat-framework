@@ -6,6 +6,11 @@ coverage and remaining full-runtime dependencies. This supersedes the older
 weapon-constructor status below; the complete consumer setup-to-play path
 remains unfinished.
 
+Install the importer's Python dependencies first with
+`python -m pip install -r tools/local-import/requirements.txt`. The native decoder
+requires Capstone, and spreadsheet validation requires `openpyxl`. Use the same
+Python environment for installation and setup. `--check` needs neither package.
+
 Use your existing MORDHAU installation; no reinstall or fresh game copy is required. The Python setup command detects a running original Shipping executable first, then an existing Steam installation. An explicit selection takes priority:
 
 ```
